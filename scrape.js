@@ -3,6 +3,8 @@ const path = require('path');
 const http = require('http');
 const fs = require('fs');
 const { spawn } = require('child_process');
+const readline = require('readline');
+
 
 function loadConf() {
     const confPath = path.join(__dirname, '.conf');
@@ -13,6 +15,17 @@ function loadConf() {
         if (key && rest.length) conf[key.trim()] = rest.join('=').trim();
     }
     return conf;
+}
+
+function askQuestion(query) {
+    const rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout,
+    });
+    return new Promise(resolve => rl.question(query, ans => {
+        rl.close();
+        resolve(ans);
+    }));
 }
 
 async function waitForPort(port, timeout = 10000) {
@@ -244,8 +257,18 @@ async function searchUserAndGetWeekView(page, setUrl, name) {
                 if (seen.has(userName)) continue;
                 seen.add(userName);
                 const cells = Array.from(row.querySelectorAll('td'));
-                const todayCell = cells[0] ? (cells[0].innerText || '').trim() : '';
-                users.push({ userName, todaySchedule: todayCell });
+                const todayCellEl = cells[0];
+                const todayCellText = todayCellEl ? (todayCellEl.innerText || '').trim() : '';
+                
+                let registerUrl = null;
+                if (todayCellEl) {
+                    const link = todayCellEl.querySelector('a[href*="ScheduleEntry"]');
+                    if (link) {
+                        registerUrl = link.getAttribute('href');
+                    }
+                }
+                
+                users.push({ userName, todaySchedule: todayCellText, registerUrl });
             }
             return users;
         });
@@ -263,16 +286,13 @@ async function searchUserAndGetWeekView(page, setUrl, name) {
  * Event・Detail・時間を入力して登録する。
  * Detail には「時間/理由/扱い」形式で入力（休暇ありでも理由があれば含める）。
  */
-async function registerSchedule(page, item, baseUrl) {
-    // 「+」ボタンのリンク（ScheduleEntry）を取得
-    const entryUrl = await page.evaluate((base) => {
-        const links = Array.from(document.querySelectorAll('a[href*="ScheduleEntry"]'));
-        for (const a of links) {
-            const href = a.getAttribute('href');
-            if (href) return href.startsWith('http') ? href : base + href.replace(/^.*ag\.cgi/, '');
-        }
-        return null;
-    }, baseUrl);
+async function registerSchedule(page, item, baseUrl, isAllMode, registerUrl) {
+    if (!registerUrl) {
+        console.log('  ✗ 登録用(＋)リンクが見つかりません');
+        return false;
+    }
+
+    const entryUrl = registerUrl.startsWith('http') ? registerUrl : baseUrl + registerUrl.replace(/^.*ag\.cgi/, '');
 
     if (!entryUrl) {
         console.log('  ✗ ScheduleEntryリンクが見つかりません');
@@ -301,14 +321,15 @@ async function registerSchedule(page, item, baseUrl) {
         }
     }
 
-    // 時間設定（--:-- 以外の場合のみ）
-    if (item.time && item.time !== '--:--') {
-        const [h, m] = item.time.split(':');
-        try {
-            await page.selectOption('select[name="SetTime.Hour"]', { value: String(parseInt(h)) });
-            await page.selectOption('select[name="SetTime.Minute"]', { value: m });
-        } catch (e) {
-            console.log(`  ⚠ 時間設定スキップ: ${e.message}`);
+    // 登録確認（allオプションがない場合）
+    if (!isAllMode) {
+        console.log(`\n[登録内容の確認]`);
+        console.log(`名前: ${item.name}`);
+        console.log(`種類: ${item.kyuka || '（なし）'}`);
+        console.log(`内容: ${detailText}`);
+        const answer = await askQuestion('この内容でスケジュールを登録しますか？ (y/n): ');
+        if (answer.toLowerCase() !== 'y') {
+            return 'cancelled';
         }
     }
 
@@ -321,6 +342,7 @@ async function registerSchedule(page, item, baseUrl) {
 }
 
 async function run() {
+    const isAllMode = process.argv.includes('all');
     const conf = loadConf();
     const loginId = conf.ID       || '';
     const loginPw = conf.PASSWORD  || '';
@@ -335,7 +357,7 @@ async function run() {
 
     const u = new URL(loginUrl);
     const loginBase = `${u.protocol}//${u.host}/cgi-bin/cbag/ag.cgi`;
-    const baseUrl   = `${u.protocol}//${u.host}/cgi-bin/cbag/`;
+    const baseUrl   = `${u.protocol}//${u.host}/cgi-bin/cbag/ag.cgi`;
 
     console.log('ブラウザを起動中...');
     const chromiumPath = chromium.executablePath();
@@ -491,20 +513,27 @@ async function run() {
         }
 
         const todaySchedule = found.userInfo.todaySchedule;
-        const matchedKw = SKIP_SCHEDULE_KEYWORDS.find(kw => todaySchedule.includes(kw));
+        
+        // 登録しようとしている予定種別を特定
+        const eventValue = kyukaToEventValue(item.kyuka);
+        const eventLabel = eventValue ? eventValue.split(',')[1] : null; // 例: ":午前半休"
 
-        // 既に休み/午前半休/午後半休 が登録済みでも、理由・扱いがあればDetailに入れて登録する
-        // 理由も扱いもなければスキップ
-        const hasDetail = item.riyu || item.atsukai;
-        if (matchedKw && !hasDetail) {
-            searchResults.push({ ...item, searchKeyword: found.keyword, skipReason: `登録済み・理由なし(${matchedKw})` });
+        // 既に同じ予定種別が登録済みならスキップ
+        const isAlreadyRegistered = eventLabel && todaySchedule.includes(eventLabel);
+
+        if (isAlreadyRegistered) {
+            searchResults.push({ ...item, searchKeyword: found.keyword, skipReason: `登録済み(${eventLabel})` });
         } else {
-            console.log(`  → ${item.name} さんのスケジュールを登録中...`);
-            const ok = await registerSchedule(page, item, baseUrl);
-            if (ok) {
+            console.log(`\n名前: ${item.name} さんの入力画面を開いています...`);
+            const result = await registerSchedule(page, item, baseUrl, isAllMode, found.userInfo.registerUrl);
+            
+            if (result === true) {
                 const memo = [item.time, item.riyu, item.atsukai].filter(v => v && v !== '--:--').join('/');
                 console.log(`  ✓ 登録完了 (Detail: ${memo})`);
                 searchResults.push({ ...item, searchKeyword: found.keyword, skipReason: null, registered: true });
+            } else if (result === 'cancelled') {
+                console.log(`  - ${item.name} さんの登録をスキップしました (ユーザーによるキャンセル)`);
+                searchResults.push({ ...item, searchKeyword: found.keyword, skipReason: 'ユーザーによるキャンセル' });
             } else {
                 searchResults.push({ ...item, searchKeyword: found.keyword, skipReason: '登録失敗' });
             }
