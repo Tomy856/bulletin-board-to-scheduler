@@ -1,0 +1,2651 @@
+<!DOCTYPE html><html lang="ja"><head>
+<title>予定の登録 - サイボウズ Office</title>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta name="robots" content="noindex,nofollow,noarchive">
+<link rel="stylesheet" type="text/css" href="/cb1080/html/std.css?_v=1086120220502162043.css">
+<link rel="stylesheet" type="text/css" href="/cb1080/html/yui/menu/assets/menu.css?_v=1086120220502162043.css">
+<link rel="stylesheet" type="text/css" href="/cb1080/html/yui/container/assets/container.css?_v=1086120220502162043.css">
+<link rel="stylesheet" type="text/css" href="/cb1080/html/dialog.css?_v=1086120220502162043.css">
+<link rel="stylesheet" type="text/css" href="/cb1080/html/header.css?_v=1086120220502162043.css">
+<link rel="stylesheet" id="designcss" type="text/css" href="/cb1080/html/std-varaha/std-varaha.css?_v=1086120220502162043.css">
+<script type="text/javascript" charset="UTF-8" src="/cb1080/html/jquery/jquery.min.js?_v=1086120220502162043.js"></script>
+<script type="text/javascript" charset="UTF-8" src="/cb1080/html/yui/utilities/utilities.js?_v=1086120220502162043.js"></script>
+<script type="text/javascript" charset="UTF-8" src="/cb1080/html/std.js?_v=1086120220502162043.js"></script>
+<script language="JavaScript" type="text/javascript"><!--
+CB7.Init( "ScheduleEntry", "ts.1773629500" );
+CB7.HTM_PATH = "/cb1080/html";
+CB7.IMG_PATH = "/cb1080/image";
+CB7.FORM_KEY = "b6bfb18ecd707d0b0373b6531de768cd";
+CB7.PRODUCT_TITLE = "サイボウズ Office";
+CB7.LOGIN_ID = "2373";
+CB7.BUILD_VERSION = "1086120220502162043";
+g_strImgPath = "/cb1080/image";
+g_bHeadbarFix = true;
+//--></script>
+<script type="text/javascript" charset="UTF-8" src="/cb1080/html/dom.js?_v=1086120220502162043.js"></script>
+<script type="text/javascript" charset="UTF-8" src="/cb1080/html/spinner.js?_v=1086120220502162043.js"></script>
+<script type="text/javascript" charset="UTF-8" src="/cb1080/html/form.js?_v=1086120220502162043.js"></script>
+<script type="text/javascript" charset="UTF-8" src="/cb1080/html/image.js?_v=1086120220502162043.js"></script>
+<link href="/cb1080/image/cybozuoffice.ico" rel="shortcut icon"> 
+<script type="text/javascript"><!--
+YAHOO.util.Event.on( document, "click", CB7.AutoHideMenu.HideAll );
+//--></script>
+<script language="javascript" type="text/javascript" charset="UTF-8" src="/cb1080/html/calendar.js"></script>
+<script language="javascript" type="text/javascript">
+<!--
+
+$(function(){
+ SetParticipantGroup();
+ SetFacilityGroup();
+ window.scroll(0,0);
+});
+
+function tabMove( tabName )
+{
+ CB7.BlockUnload(false);
+ var form = document.forms["ScheduleEntry"];
+ PreSubmitFile( form );
+ PreSubmitCGID( form );
+ PreSubmitFGID( form );
+ form.r.value = "Calendar";
+ form.tab.value = tabName;
+ form.submit();
+}
+
+function init()
+{
+ var f = document.forms["ScheduleEntry"];
+ if( ! f ) return ;
+ if( f.ViewAddress && f.ViewAddress.value )
+ {
+ f.ViewAddress.value = "";
+ f.r.value = "";
+ }
+}
+
+function SwitchToSingleDate()
+{
+ ToggleParts();
+ $('#isMultiDates').remove();
+ $('#WarningAttach').hide();
+ $('#FileAttachArea').show();
+}
+
+function SwitchToMultiDates()
+{
+ ToggleParts();
+ $('#multiDates').append('<input id="isMultiDates" type="hidden" name="IsMultiDates" value="1">');
+ $('#WarningAttach').show();
+ $('#FileAttachArea').hide();
+}
+
+function ToggleParts(){
+ $('#singleDate').toggle();
+ $('#multiDates').toggle();
+ $('#switchToSingleDate').toggle();
+ $('#switchToMultiDates').toggle();
+}
+//-->
+</script>
+<script language="JavaScript" type="text/javascript">
+<!--
+function CheckScheduleDataForm( form )
+{
+ var message  ="";
+
+ var setdateDay = 0;
+ var enddateDay = 0;
+
+
+ if( $('#isMultiDates').length > 0 ){
+ if( $('.selectedDate').length === 0 ){
+ message = message + "日付が選択されていません。\n"
+ }
+ }
+
+ var settimeHour = form.elements["SetTime.Hour"].selectedIndex;
+ var settimeMinute = form.elements["SetTime.Minute"].selectedIndex;
+ var endtimeHour = form.elements["EndTime.Hour"].selectedIndex;
+ var endtimeMinute = form.elements["EndTime.Minute"].selectedIndex;
+
+ var settimeHourNull = true;
+ var endtimeHourNull = true;
+
+ if( ( settimeHour != 0 ) && ( settimeHour != 9 )  )
+ {
+ settimeHourNull = false;
+ }
+ if( ( endtimeHour != 0 ) && ( endtimeHour != 9 ) )
+ {
+ endtimeHourNull = false;
+ }
+
+ if(  settimeHourNull && ! endtimeHourNull )
+ {
+ message = message + "開始時刻が入力されていません。\n";
+ }
+
+ if( ! settimeHourNull && ! endtimeHourNull && ( setdateDay == enddateDay ) )
+ {
+ if( ( settimeHour > endtimeHour ) )
+ {
+ message = message + "開始時刻が不正です。\n";
+ }
+
+ else if( endtimeHour == settimeHour )
+ {
+ if( ( ( settimeMinute > 1 ) && ( endtimeMinute <= 1 ) ) ||
+ ( ( endtimeMinute > 1 ) && ( settimeMinute > endtimeMinute ) ) )
+ message = message + "開始時刻が不正です。\n";
+ }
+ }
+
+ var bUserNoValue = true;
+ var bFacilityNoValue = true;
+
+ if( ( form.sUID.selectedIndex < 0 ) || ( form.sUID.options[form.sUID.selectedIndex].value == "" ) )
+ {
+ if( form.sUID.selectedIndex >= 0 )
+ {
+ for( var item in form.sUID.options )
+ {
+ if( item.value ) {
+ bUserNoValue = false;
+ break;
+ }
+ }
+ }
+ }
+ else
+ {
+ bUserNoValue = false;
+ }
+
+
+ if( ( form.sFID.selectedIndex < 0 ) || ( form.sFID.options[form.sFID.selectedIndex].value == "" ) )
+ {
+ if( form.sFID.selectedIndex >= 0 )
+ {
+ for( var item in form.sFID.options )
+ {
+ if( item.value ) {
+ bFacilityNoValue = false;
+ break;
+ }
+ }
+ }
+ }
+ else
+ {
+ bFacilityNoValue = false;
+ }
+
+
+ if( bUserNoValue && bFacilityNoValue )
+ {
+ message = message + "参加者または施設が選択されていません。\n";
+ }
+
+ if( ! bFacilityNoValue )
+ {
+ if( ( form.elements["SetTime.Hour"].value == "" ) ||
+ ( form.elements["EndTime.Hour"].value == "" ) )
+ {
+ message = message + "施設を予約する場合は、時刻を入力してください。";
+ }
+ }
+
+ if( message.length )
+ {
+ alert( message );
+ return false;
+ }
+
+ if (!CheckSimpleReplyForm(form)) {
+ return false;
+ }
+
+ return true;
+}
+//-->
+</script>
+</head>
+<body onload="init()"><div id="TooltipID1" class="yui-module yui-overlay yui-tt yui-overlay-hidden" style="z-index: 2; visibility: hidden;"><div class="bd">選択している参加者や施設の空き時間を確認します。<br>左右どちらのリストボックスで選択しても確認できます。</div></div><iframe id="_yuiResizeMonitor" title="Text Resize Monitor" tabindex="-1" role="presentation" style="position: absolute; visibility: visible; background-color: transparent; border-width: 0px; width: 2em; height: 2em; left: 0px; top: -33px;"></iframe>
+<div id="headbar-wrapper" class="vr_headbarFix">
+ <div id="headbar" class="headbar">
+ <table id="headerTable" class="layout" width="100%" role="presentation">
+ <colgroup width="1">
+ </colgroup><colgroup width="1%">
+ </colgroup><colgroup width="200px">
+ </colgroup><colgroup width="">
+ </colgroup><tbody><tr>
+ <td class="vr_logo" nowrap=""><h1 class="visuallyHidden">サイボウズ Office</h1><a href="ag.cgi?page=AGIndex"><img src="ag.cgi?page=OfficeDownload&amp;notimecard=1&amp;type=image&amp;subtype=png&amp;id=2&amp;ct=1&amp;v=1390021355&amp;width=250&amp;height=26&amp;ext=.png" align="absmiddle" alt="トップページ"></a>
+ </td>
+ <td class="vr_headerNotifireList" nowrap=""><ul>
+</ul>
+ </td>
+ <td class="vr_headbarSearch" nowrap="">
+<form method="get" name="headbarSearchForm" action="ag.cgi?" style="display:inline;">
+ <input type="hidden" name="page" value="AGSimpleSearch">
+<script type="text/javascript" charset="UTF-8" src="/cb1080/html/search.js?_v=1086120220502162043.js"></script>
+ <table class="vr_headbarSearchArea">
+ <tbody><tr>
+ <td class="vr_headbarSearchTdInput">
+ <input type="text" name="Text" id="searchText" onfocus="CB7.HeaderSearchToggle.ClearPlaceholder();" onblur="CB7.HeaderSearchToggle.ShowPlaceholder();" class="vr_headerSearchText" value="" maxlength="100">
+ </td>
+ <td class="vr_headbarSearchTdButton">
+ <input type="submit" class="vr_headerSearchButton" value="" alt="検索" title="検索" onclick="CB7.HeaderSearchToggle.ClearPlaceholder();">
+<script language="JavaScript" type="text/javascript">
+<!--
+CB7.HeaderSearchToggle.Initialize( '製品内を検索', 'searchText', 'vr_placeholder' );
+CB7.HeaderSearchToggle.TogglePlaceholder();
+//-->
+</script>
+ </td>
+ </tr>
+ </tbody></table>
+ </form>
+ </td>
+ <td class="vr_menu">
+<script type="text/javascript" charset="UTF-8" src="/cb1080/html/yui/container/container-min.js?_v=1086120220502162043.js"></script>
+<script type="text/javascript" charset="UTF-8" src="/cb1080/html/yui/menu/menu-min.js?_v=1086120220502162043.js"></script>
+<script type="text/javascript" charset="UTF-8" src="/cb1080/html/dialog.js?_v=1086120220502162043.js"></script>
+<script type="text/javascript" charset="UTF-8" src="/cb1080/html/headermenu.js?_v=1086120220502162043.js"></script>
+<script language="JavaScript" type="text/javascript"><!--//
+CB7.HeaderMenu.Dialog.LINK_URL = "ag.cgi?page=AjaxXHRLinkDialog";
+//--></script>
+<div id="headermenu" class="yuimenubar yui-module yui-overlay visible" style="z-index: 2; position: static; display: block; visibility: visible;">
+ <div class="bd clearfix">
+ <ul class="first-of-type headermenutip">
+ <li id="header-menu-notification" class="yuimenubaritem vr_headerMenuNotification first-of-type" groupindex="0" index="0">
+ <a href="ag.cgi?page=NotificationIndex" class="yuimenubaritemlabel"><img class="comHeaderMenuImage vr_notificationImage" src="/cb1080/image/comHeader_bell.png" alt="通知一覧"></a>
+ </li>
+ <li id="header-menu-application" class="yuimenubaritem vr_headerMenuApp yuimenubaritem-hassubmenu" groupindex="0" index="1">
+ <a href="javascript:void(0)" class="yuimenubaritemlabel yuimenubaritemlabel-hassubmenu"><span class="yuimenubaritemlabelinner">アプリ一覧<span class="yuimenubaritemlabelinnerArrow"></span></span></a>
+ <div id="applicationmenu" class="headersubmenu yuimenu yui-module yui-overlay yui-overlay-hidden" style="visibility: hidden; z-index: 51; position: absolute;">
+ <div class="bd">
+ <ul>
+ <li id="headermenuAppBox">
+ <span id="headermenuAppItem" class="vr_headerAppMenu">
+<span class="appMenuItem"><a href="ag.cgi?page=AGIndex"><span class="appmenucss appMenuAGIndex"></span><br><span class="vr_naviAppMenu">トップページ</span></a></span>
+<span class="appMenuItem"><a href="ag.cgi?page=MyFolderIndex"><span class="appmenucss appMenuMyFolderIndex"></span><br><span class="vr_naviAppMenu">個人フォルダ</span></a></span>
+<span class="appMenuItem"><a href="ag.cgi?page=MailIndex"><span class="appmenucss appMenuMailIndex"></span><br><span class="vr_naviAppMenu">メール</span></a></span>
+<span class="appMenuItem"><a href="ag.cgi?page=ScheduleIndex"><span class="appmenucss appMenuScheduleIndex"></span><br><span class="vr_naviAppMenu">スケジュール</span></a></span>
+<span class="appMenuItem"><a href="ag.cgi?page=ScheduleIndex&amp;gid=fh"><span class="appmenucss appMenuScheduleFacility"></span><br><span class="vr_naviAppMenu">設備予約</span></a></span>
+<span class="appMenuItem"><a href="ag.cgi?page=WhereIndex"><span class="appmenucss appMenuWhereIndex"></span><br><span class="vr_naviAppMenu">電話メモ(在席確認)</span></a></span>
+<span class="appMenuItem"><a href="ag.cgi?page=ToDoIndex"><span class="appmenucss appMenuToDoIndex"></span><br><span class="vr_naviAppMenu">ToDoリスト</span></a></span>
+<span class="appMenuItem"><a href="ag.cgi?page=ProjectIndex"><span class="appmenucss appMenuProjectIndex"></span><br><span class="vr_naviAppMenu">プロジェクト</span></a></span>
+<span class="appMenuItem"><a href="ag.cgi?page=BulletinIndex"><span class="appmenucss appMenuBulletinIndex"></span><br><span class="vr_naviAppMenu">掲示板</span></a></span>
+<span class="appMenuItem"><a href="ag.cgi?page=FileIndex"><span class="appmenucss appMenuFileIndex"></span><br><span class="vr_naviAppMenu">ファイル管理</span></a></span>
+<span class="appMenuItem"><a href="ag.cgi?page=AddressIndex"><span class="appmenucss appMenuAddressIndex"></span><br><span class="vr_naviAppMenu">アドレス帳</span></a></span>
+<span class="appMenuItem"><a href="ag.cgi?page=UserListIndex"><span class="appmenucss appMenuUserListIndex"></span><br><span class="vr_naviAppMenu">ユーザー名簿</span></a></span>
+<span class="appMenuItem"><a href="ag.cgi?page=WorkFlowIndex"><span class="appmenucss appMenuWorkFlowIndex"></span><br><span class="vr_naviAppMenu">ワークフロー</span></a></span>
+<span class="appMenuItem"><a href="/users/index.php" target="_admin_web"><img class="appmenuimg" src="ag.cgi?page=OfficeDownload&amp;notimecard=1&amp;type=image&amp;subtype=png&amp;id=6928&amp;ct=1&amp;v=1390026734&amp;width=32&amp;height=32&amp;ext=.png" alt="情シスWEB" height="32" width="32" border="0"><br><span class="vr_naviAppMenu">情シスWEB</span></a></span>
+<span class="appMenuItem"><a href="/cgi-bin/cbag/ag.cgi?page=PersonalUseItemIndex"><img class="appmenuimg" src="ag.cgi?page=OfficeDownload&amp;notimecard=1&amp;type=image&amp;subtype=png&amp;id=7141&amp;ct=1&amp;v=1423900225&amp;width=32&amp;height=32&amp;ext=.png" alt="機材情報" height="32" width="32" border="0"><br><span class="vr_naviAppMenu">機材情報</span></a></span>
+<span class="appMenuItem"><a href="/cgi-bin/cbag/ag.cgi?page=TimeCardMenu"><img class="appmenuimg" src="ag.cgi?page=OfficeDownload&amp;notimecard=1&amp;type=image&amp;subtype=png&amp;id=9502&amp;ct=1&amp;v=1682575696&amp;width=32&amp;height=32&amp;ext=.png" alt="WEB勤怠" height="32" width="32" border="0"><br><span class="vr_naviAppMenu">WEB勤怠</span></a></span>
+<span class="appMenuItem"><a href="https://web-agent.portal.genki.co.jp/cgi-bin/cbag/ag.cgi?page=FileIndex&amp;gid=&amp;fCID=590033"><img class="appmenuimg" src="ag.cgi?page=OfficeDownload&amp;notimecard=1&amp;type=image&amp;subtype=png&amp;id=10302&amp;ct=1&amp;v=1766553176&amp;width=32&amp;height=32&amp;ext=.png" alt="ロゴガイドライン" height="32" width="32" border="0"><br><span class="vr_naviAppMenu">ロゴガイドライン</span></a></span>
+ </span>
+ </li>
+ </ul>
+ </div>
+ </div>
+ </li>
+ <li id="header-menu-linklist" class="yuimenubaritem vr_headerMenuLink yuimenubaritem-hassubmenu" groupindex="0" index="2">
+ <a href="javascript:void(0)" class="yuimenubaritemlabel yuimenubaritemlabel-hassubmenu"><span class="yuimenubaritemlabelinner">リンク<span class="yuimenubaritemlabelinnerArrow"></span></span></a>
+ <div id="linklistmenu" class="headersubmenu yuimenu yui-module yui-overlay yui-overlay-hidden" style="visibility: hidden; z-index: 51; position: absolute;">
+ <div class="bd" cb7page="AjaxXHRHeaderSubMenu" cb7query="method=LinkList" cb7state="complete">
+<ul class="first-of-type">
+ <li class="yuimenuitem"><a class="yuimenuitemlabel" href="javascript:void(0);" onclick="CB7.HeaderMenu.Dialog.Open('link');"><img src="/cb1080/image/write16.png" align="absmiddle">この画面を追加する</a></li>
+ <li class="yuimenuitem"><a class="yuimenuitemlabel" href="javascript:void(0);" onclick="CB7.HeaderMenu.Dialog.Open('link',0,{appId:'',iconId:''});"><img src="/cb1080/image/write16.png" align="absmiddle">新規作成する</a></li>
+<li class="yuimenuitem headermenuSep">&nbsp;</li>
+<li class="yuimenuitem"><a class="yuimenuitemlabel haspopup" href="http://mp-agent.portal.genki.co.jp/report/index.html"><img src="/cb1080/image/listmark16.png" align="absmiddle">プロジェクト割り当てWEB　<img class="popupicon" src="/cb1080/image/popup16.png" align="absmiddle"></a></li>
+<li class="yuimenuitem headermenuSep">&nbsp;</li>
+ <li class="yuimenuitem"><a class="yuimenuitemlabel" href="ag.cgi?page=LinkIndex&amp;type=system"><img src="/cb1080/image/node16.png" align="absmiddle">共有リンク集</a>
+ <div class="yuimenu">
+ <div class="bd">
+<ul>
+<li class="yuimenuitem"><a class="yuimenuitemlabel haspopup" href="https://www.genki.co.jp/"><img src="/cb1080/image/listmark16.png" align="absmiddle">Genki Official Website　<img class="popupicon" src="/cb1080/image/popup16.png" align="absmiddle"></a></li>
+<li class="yuimenuitem headermenuSep">&nbsp;</li>
+<li class="yuimenuitem"><a class="yuimenuitemlabel haspopup" href="ag.cgi?page=FileIndex&amp;gid=&amp;fCID=35968"><img src="/cb1080/image/listmark16.png" align="absmiddle">就業規則等　<img class="popupicon" src="/cb1080/image/popup16.png" align="absmiddle"></a></li>
+<li class="yuimenuitem"><a class="yuimenuitemlabel haspopup" href="/cgi-bin/cbag/ag.cgi?page=FileIndex&amp;gid=624"><img src="/cb1080/image/listmark16.png" align="absmiddle">社内ルールマニュアルはこちらへ　<img class="popupicon" src="/cb1080/image/popup16.png" align="absmiddle"></a></li>
+<li class="yuimenuitem"><a class="yuimenuitemlabel haspopup" href="../../../cpr/index.html"><img src="/cb1080/image/listmark16.png" align="absmiddle">コンプラ・ハラスメント相談窓口　<img class="popupicon" src="/cb1080/image/popup16.png" align="absmiddle"></a></li>
+<li class="yuimenuitem headermenuSep">&nbsp;</li>
+<li class="yuimenuitem"><a class="yuimenuitemlabel haspopup" href="ag.cgi?page=FileIndex&amp;fCID=538912#fFID=539051"><img src="/cb1080/image/listmark16.png" align="absmiddle">社員名簿　<img class="popupicon" src="/cb1080/image/popup16.png" align="absmiddle"></a></li>
+<li class="yuimenuitem"><a class="yuimenuitemlabel haspopup" href="ag.cgi?page=FileIndex&amp;fCID=256#fFID=32023"><img src="/cb1080/image/listmark16.png" align="absmiddle">内線番号表　<img class="popupicon" src="/cb1080/image/popup16.png" align="absmiddle"></a></li>
+<li class="yuimenuitem"><a class="yuimenuitemlabel haspopup" href="ag.cgi?page=FileIndex&amp;fCID=256#fFID=538673"><img src="/cb1080/image/listmark16.png" align="absmiddle">座席表　<img class="popupicon" src="/cb1080/image/popup16.png" align="absmiddle"></a></li>
+<li class="yuimenuitem headermenuSep">&nbsp;</li>
+<li class="yuimenuitem"><a class="yuimenuitemlabel haspopup" href="https://web-agent.portal.genki.co.jp/cgi-bin/cbag/ag.cgi?page=FileIndex&amp;gid=&amp;fCID=590033"><img src="/cb1080/image/listmark16.png" align="absmiddle">Corporate Brand Guidelines（ロゴ）　<img class="popupicon" src="/cb1080/image/popup16.png" align="absmiddle"></a></li>
+<li class="yuimenuitem headermenuSep">&nbsp;</li>
+<li class="yuimenuitem"><a class="yuimenuitemlabel haspopup" href="https://mp-agent.portal.genki.co.jp/report/index.html"><img src="/cb1080/image/listmark16.png" align="absmiddle">プロジェクト割り当て(工数入力)　<img class="popupicon" src="/cb1080/image/popup16.png" align="absmiddle"></a></li>
+<li class="yuimenuitem headermenuSep">&nbsp;</li>
+<li class="yuimenuitem"><a class="yuimenuitemlabel haspopup" href="http://hibiscus/"><img src="/cb1080/image/listmark16.png" align="absmiddle">開発サポート サイト　<img class="popupicon" src="/cb1080/image/popup16.png" align="absmiddle"></a></li>
+<li class="yuimenuitem headermenuSep">&nbsp;</li>
+<li class="yuimenuitem"><a class="yuimenuitemlabel haspopup" href="https://ocs-svr.genkiman.genki.co.jp/glpi/"><img src="/cb1080/image/listmark16.png" align="absmiddle">機材管理データベース（GLPI）　<img class="popupicon" src="/cb1080/image/popup16.png" align="absmiddle"></a></li>
+<li class="yuimenuitem"><a class="yuimenuitemlabel haspopup" href="/users/index.php"><img src="/cb1080/image/listmark16.png" align="absmiddle">情報システムWeb　<img class="popupicon" src="/cb1080/image/popup16.png" align="absmiddle"></a></li>
+<li class="yuimenuitem"><a class="yuimenuitemlabel haspopup" href="ag.cgi?page=AdminMailSend&amp;PageType=AddUser"><img src="/cb1080/image/listmark16.png" align="absmiddle">アカウント等新規発行依頼申請　<img class="popupicon" src="/cb1080/image/popup16.png" align="absmiddle"></a></li>
+<li class="yuimenuitem"><a class="yuimenuitemlabel haspopup" href="ag.cgi?page=AdminMailSend&amp;PageType=ChgUser"><img src="/cb1080/image/listmark16.png" align="absmiddle">アカウント等変更依頼申請　<img class="popupicon" src="/cb1080/image/popup16.png" align="absmiddle"></a></li>
+<li class="yuimenuitem"><a class="yuimenuitemlabel haspopup" href="ag.cgi?page=AdminMailSend&amp;PageType=DelUser"><img src="/cb1080/image/listmark16.png" align="absmiddle">アカウント等削除依頼申請　<img class="popupicon" src="/cb1080/image/popup16.png" align="absmiddle"></a></li>
+<li class="yuimenuitem"><a class="yuimenuitemlabel haspopup" href="ag.cgi?page=AdminMailSend&amp;PageType=RentNotePC"><img src="/cb1080/image/listmark16.png" align="absmiddle">ノートPC貸出依頼フォーム　<img class="popupicon" src="/cb1080/image/popup16.png" align="absmiddle"></a></li>
+<li class="yuimenuitem headermenuSep">&nbsp;</li>
+<li class="yuimenuitem"><a class="yuimenuitemlabel haspopup" href="https://manual.cybozu.co.jp/of10/user/index.html"><img src="/cb1080/image/listmark16.png" align="absmiddle">サイボウズ オンラインマニュアル　<img class="popupicon" src="/cb1080/image/popup16.png" align="absmiddle"></a></li>
+<li class="yuimenuitem headermenuSep">&nbsp;</li>
+<li class="yuimenuitem"><a class="yuimenuitemlabel haspopup" href="ag.cgi?page=GenkiFreeWiFiInfo"><img src="/cb1080/image/listmark16.png" align="absmiddle">今日の来客用Wifi　<img class="popupicon" src="/cb1080/image/popup16.png" align="absmiddle"></a></li>
+<li class="yuimenuitem headermenuSep">&nbsp;</li>
+</ul>
+ </div>
+ </div>
+ </li>
+<li class="yuimenuitem headermenuSep">&nbsp;</li>
+ <li class="yuimenuitem"><a class="yuimenuitemlabel" href="ag.cgi?page=PersonalStartMenuAdmin"><img src="/cb1080/image/node16.png" align="absmiddle">始めるメニュー</a>
+ <div class="yuimenu">
+ <div class="bd">
+<ul>
+<li class="yuimenuitem"><a class="yuimenuitemlabel haspopup" href="ag.cgi?page=MyFolderMessageSend"><img src="/cb1080/image/msg16.png" align="absmiddle">社内メールを送る　<img class="popupicon" src="/cb1080/image/popup16.png" align="absmiddle"></a></li>
+<li class="yuimenuitem"><a class="yuimenuitemlabel haspopup" href="ag.cgi?page=MailSend"><img src="/cb1080/image/mail16.png" align="absmiddle">メールを送る　<img class="popupicon" src="/cb1080/image/popup16.png" align="absmiddle"></a></li>
+<li class="yuimenuitem"><a class="yuimenuitemlabel haspopup" href="ag.cgi?page=MyFolderMemoAdd"><img src="/cb1080/image/memo16.png" align="absmiddle">メモを書く　<img class="popupicon" src="/cb1080/image/popup16.png" align="absmiddle"></a></li>
+<li class="yuimenuitem"><a class="yuimenuitemlabel haspopup" href="ag.cgi?page=ToDoEntry"><img src="/cb1080/image/todo16.png" align="absmiddle">ToDoを登録する　<img class="popupicon" src="/cb1080/image/popup16.png" align="absmiddle"></a></li>
+<li class="yuimenuitem headermenuSep">&nbsp;</li>
+<li class="yuimenuitem"><a class="yuimenuitemlabel haspopup" href="ag.cgi?page=BulletinSend"><img src="/cb1080/image/bulletin16.png" align="absmiddle">掲示板に書き込む　<img class="popupicon" src="/cb1080/image/popup16.png" align="absmiddle"></a></li>
+<li class="yuimenuitem"><a class="yuimenuitemlabel haspopup" href="ag.cgi?page=AddressEntry"><img src="/cb1080/image/address16.png" align="absmiddle">アドレスを登録する　<img class="popupicon" src="/cb1080/image/popup16.png" align="absmiddle"></a></li>
+<li class="yuimenuitem headermenuSep">&nbsp;</li>
+<li class="yuimenuitem"><a class="yuimenuitemlabel haspopup" href="ag.cgi?page=ScheduleEntry"><img src="/cb1080/image/schedule16.png" align="absmiddle">予定を登録する　<img class="popupicon" src="/cb1080/image/popup16.png" align="absmiddle"></a></li>
+<li class="yuimenuitem"><a class="yuimenuitemlabel haspopup" href="ag.cgi?page=ScheduleAdjust"><img src="/cb1080/image/adjust16.png" align="absmiddle">予定を調整する　<img class="popupicon" src="/cb1080/image/popup16.png" align="absmiddle"></a></li>
+<li class="yuimenuitem headermenuSep">&nbsp;</li>
+</ul>
+ </div>
+ </div>
+ </li>
+</ul>
+ </div>
+ </div>
+ </li>
+ <li id="header-menu-user" class="yuimenubaritem first-of-type vr_headerMenuUser yuimenubaritem-hassubmenu" groupindex="0" index="3">
+ <a href="javascript:void(0)" class="yuimenubaritemlabel yuimenubaritemlabel-hassubmenu"><img class="profileImage" src="ag.cgi?page=UserImageDownload&amp;notimecard=1&amp;id=2373&amp;ct=1&amp;v=1769740833&amp;Width=16&amp;Height=16&amp;ext=.png" style="width: 16px; height: 16px;" align="absmiddle"><span class="yuimenubaritemlabelinner">冨田 拓也<span class="yuimenubaritemlabelinnerArrow"></span></span></a>
+ <div id="usermenu" class="headersubmenu yuimenu yui-module yui-overlay yui-overlay-hidden" style="visibility: hidden; z-index: 51; position: absolute;">
+ <div class="bd">
+ <span class="vr_headerUserImage"><img class="profileImage" src="ag.cgi?page=UserImageDownload&amp;notimecard=1&amp;id=2373&amp;ct=1&amp;v=1769740833&amp;Width=36&amp;Height=36&amp;ext=.png" style="width: 36px; height: 36px;" align="absmiddle"></span>
+ <ul>
+ <li class="yuimenuitem vr_headerAccount"><a href="ag.cgi?page=UserListView&amp;uid=2373">冨田 拓也</a></li>
+ <li class="yuimenuitem vr_headerAccount"><a href="ag.cgi?page=PersonalUser">編集</a></li>
+ <li class="yuimenuitem headermenuSep">&nbsp;</li>
+ <li class="yuimenuitem"><a class="vr_headerPersonalSettings" href="ag.cgi?page=PersonalAdminMenu">個人設定</a></li>
+ <li class="yuimenuitem"><a href="ag.cgi?page=PersonalUserPasswordAdmin">パスワードの変更</a></li>
+ <li class="yuimenuitem"><a href="ag.cgi?Page=PersonalDesign">デザインの変更</a></li>
+ <li class="yuimenuitem headermenuSep">&nbsp;</li>
+ <li class="yuimenuitem" style=""><a class="vr_headerTouchDesignCheckbox" href="javascript:void(0);" onclick="CB7.TouchDesign.ToggleSetting(this);">タッチモード</a></li>
+ <li class="yuimenuitem"><a class="vr_headerSignageCheckbox" href="javascript:void(0);" onclick="CB7.Signage.Start();">全画面表示</a></li>
+ <li class="yuimenuitem headermenuSep">&nbsp;</li>
+ <li class="yuimenuitem"><a href="https://jp.cybozu.help/of10/ja/user.html" target="_blank">ヘルプ</a></li>
+<form method="post" id="topLogoutForm" name="topLogoutForm" action="ag.cgi?" style="display:inline;">
+<input type="hidden" name="csrf_ticket" value="b6bfb18ecd707d0b0373b6531de768cd">
+<input type="hidden" name="_System" value="Login"><input type="hidden" name="_Logout" value="ログアウト"></form> <li class="yuimenuitem"><a href="#" onclick="javascript:document.topLogoutForm.submit();">ログアウト</a></li>
+ </ul>
+ </div>
+ </div>
+ </li>
+ </ul>
+ </div>
+</div>
+<script language="JavaScript" type="text/javascript"><!--//
+YAHOO.util.Event.onContentReady( 'headermenu', function(){
+ new CB7.HeaderMenu('headermenu', {
+ requesturl:'ag.cgi', position: 'static',
+ autosubmenudisplay: false, clicktohide: true, scrollincrement:3, lazyload:true
+ });
+});
+//--></script>
+<script language="JavaScript" type="text/javascript"><!--//
+(function(){ CB7.TouchDesign.Init(); })();
+//--></script>
+<script>CB7.Signage.Init("ScheduleEntry");</script>
+ </td>
+ </tr>
+ </tbody></table>
+ </div>
+</div>
+<script language="JavaScript" type="text/javascript"><!--//
+YAHOO.util.Event.onContentReady( 'headbar-wrapper', function(){
+ OnHashJump();
+ SetContentPaddingTop();
+ $(window).resize(function(){SetContentPaddingTop();});
+});
+//--></script>
+<div id="content-wrapper" class="vr_headbarFix" style="padding-top: 27px;">
+<div class="vr_themeHeaderWrapper">
+<div class="vr_themeHeader" id="vr_themeHeader"><div class="vr_themeHeaderLink1"></div><div class="vr_themeHeaderLink2"></div><div class="vr_themeHeaderLink3"></div></div>
+<div class="vr_themeHeaderOuterDivider"></div>
+<div id="appIconMenuFrame" style="overflow-y:hidden;">
+<div class="vr_themeHeaderInnerDivider"></div>
+<div class="vr_naviAppMenu"><nav role="navigation"><ul class="naviAppMenuList">
+<li class="naviAppMenuListItem">
+<span class="appMenuItem"><a href="ag.cgi?page=AGIndex"><span class="appmenucss appMenuAGIndex"></span><br><span class="vr_naviAppMenu">トップページ</span></a></span>
+</li>
+<li class="naviAppMenuListItem">
+<span class="appMenuItem"><a href="ag.cgi?page=MyFolderIndex"><span class="appmenucss appMenuMyFolderIndex"></span><br><span class="vr_naviAppMenu">個人フォルダ</span></a></span>
+</li>
+<li class="naviAppMenuListItem">
+<span class="appMenuItem"><a href="ag.cgi?page=MailIndex"><span class="appmenucss appMenuMailIndex"></span><br><span class="vr_naviAppMenu">メール</span></a></span>
+</li>
+<li class="naviAppMenuListItem">
+<span class="appMenuItem"><a href="ag.cgi?page=ScheduleIndex"><span class="appmenucss appMenuScheduleIndex"></span><br><span class="vr_naviAppMenu">スケジュール</span></a></span>
+</li>
+<li class="naviAppMenuListItem">
+<span class="appMenuItem"><a href="ag.cgi?page=ScheduleIndex&amp;gid=fh"><span class="appmenucss appMenuScheduleFacility"></span><br><span class="vr_naviAppMenu">設備予約</span></a></span>
+</li>
+<li class="naviAppMenuListItem">
+<span class="appMenuItem"><a href="ag.cgi?page=WhereIndex"><span class="appmenucss appMenuWhereIndex"></span><br><span class="vr_naviAppMenu">電話メモ(在席確認)</span></a></span>
+</li>
+<li class="naviAppMenuListItem">
+<span class="appMenuItem"><a href="ag.cgi?page=ToDoIndex"><span class="appmenucss appMenuToDoIndex"></span><br><span class="vr_naviAppMenu">ToDoリスト</span></a></span>
+</li>
+<li class="naviAppMenuListItem">
+<span class="appMenuItem"><a href="ag.cgi?page=ProjectIndex"><span class="appmenucss appMenuProjectIndex"></span><br><span class="vr_naviAppMenu">プロジェクト</span></a></span>
+</li>
+<li class="naviAppMenuListItem">
+<span class="appMenuItem"><a href="ag.cgi?page=BulletinIndex"><span class="appmenucss appMenuBulletinIndex"></span><br><span class="vr_naviAppMenu">掲示板</span></a></span>
+</li>
+<li class="naviAppMenuListItem">
+<span class="appMenuItem"><a href="ag.cgi?page=FileIndex"><span class="appmenucss appMenuFileIndex"></span><br><span class="vr_naviAppMenu">ファイル管理</span></a></span>
+</li>
+<li class="naviAppMenuListItem">
+<span class="appMenuItem"><a href="ag.cgi?page=AddressIndex"><span class="appmenucss appMenuAddressIndex"></span><br><span class="vr_naviAppMenu">アドレス帳</span></a></span>
+</li>
+<li class="naviAppMenuListItem">
+<span class="appMenuItem"><a href="ag.cgi?page=UserListIndex"><span class="appmenucss appMenuUserListIndex"></span><br><span class="vr_naviAppMenu">ユーザー名簿</span></a></span>
+</li>
+<li class="naviAppMenuListItem">
+<span class="appMenuItem"><a href="ag.cgi?page=WorkFlowIndex"><span class="appmenucss appMenuWorkFlowIndex"></span><br><span class="vr_naviAppMenu">ワークフロー</span></a></span>
+</li>
+<li class="naviAppMenuListItem">
+<span class="appMenuItem"><a href="/users/index.php" target="_admin_web"><img class="appmenuimg" src="ag.cgi?page=OfficeDownload&amp;notimecard=1&amp;type=image&amp;subtype=png&amp;id=6928&amp;ct=1&amp;v=1390026734&amp;width=32&amp;height=32&amp;ext=.png" alt="情シスWEB" height="32" width="32" border="0"><br><span class="vr_naviAppMenu">情シスWEB</span></a></span>
+</li>
+<li class="naviAppMenuListItem">
+<span class="appMenuItem"><a href="/cgi-bin/cbag/ag.cgi?page=PersonalUseItemIndex"><img class="appmenuimg" src="ag.cgi?page=OfficeDownload&amp;notimecard=1&amp;type=image&amp;subtype=png&amp;id=7141&amp;ct=1&amp;v=1423900225&amp;width=32&amp;height=32&amp;ext=.png" alt="機材情報" height="32" width="32" border="0"><br><span class="vr_naviAppMenu">機材情報</span></a></span>
+</li>
+<li class="naviAppMenuListItem">
+<span class="appMenuItem"><a href="/cgi-bin/cbag/ag.cgi?page=TimeCardMenu"><img class="appmenuimg" src="ag.cgi?page=OfficeDownload&amp;notimecard=1&amp;type=image&amp;subtype=png&amp;id=9502&amp;ct=1&amp;v=1682575696&amp;width=32&amp;height=32&amp;ext=.png" alt="WEB勤怠" height="32" width="32" border="0"><br><span class="vr_naviAppMenu">WEB勤怠</span></a></span>
+</li>
+<li class="naviAppMenuListItem">
+<span class="appMenuItem"><a href="https://web-agent.portal.genki.co.jp/cgi-bin/cbag/ag.cgi?page=FileIndex&amp;gid=&amp;fCID=590033"><img class="appmenuimg" src="ag.cgi?page=OfficeDownload&amp;notimecard=1&amp;type=image&amp;subtype=png&amp;id=10302&amp;ct=1&amp;v=1766553176&amp;width=32&amp;height=32&amp;ext=.png" alt="ロゴガイドライン" height="32" width="32" border="0"><br><span class="vr_naviAppMenu">ロゴガイドライン</span></a></span>
+</li>
+</ul></nav></div></div>
+</div>
+<div><div id="appmenuToggler" class="appmenuExpand"><div class="appmenuToggleButton"></div></div></div>
+
+<div class="pathbarNoMenu">
+
+<a class="vr_pathTop" href="ag.cgi?page=AGIndex">トップページ</a><span class="vr_pathWrap">&nbsp;</span><a class="vr_pathMiddle" href="ag.cgi?page=ScheduleIndex&amp;Date=&amp;GID=&amp;cp=" onclick="">グループ週表示</a><span class="vr_pathCurrent">&nbsp;</span><span>予定の登録</span>
+</div>
+
+<div class="content">
+<div style="width:100%;">
+<script type="text/javascript">
+function ToggleHeaderEvent(a) {
+var el = document.getElementById('headerscheduleview');
+if(el.style.display == 'none') {
+ a.firstChild.src = "/cb1080/image/showup16.png";
+ a.firstChild.nextSibling.nodeValue = "この日の予定を隠す";
+ el.style.display = '';
+} else {
+ a.firstChild.src = "/cb1080/image/showdown16.png";
+ a.firstChild.nextSibling.nodeValue = "この日の予定を表示する";
+ el.style.display = 'none';
+}
+}
+</script>
+<div class="headerschedule"><div class="headerschedulehHeader"><span class="viewdate">2026 年 3 月 16 日 (月)</span>&nbsp;<a class="switchview" href="javascript:void(0);" onclick="javascript:ToggleHeaderEvent(this);return false;"><img src="/cb1080/image/showdown16.png" align="absmiddle">この日の予定を表示する</a></div>
+<div id="headerscheduleview" style="display:none;">
+<table class="schedule userday header" width="100%">
+<tbody><tr class="headerrow">
+<td class="headernavi" rowspan="2" colspan="2" width="15%"><br></td>
+<td class="hours morning" colspan="4" width="7%">8</td>
+<td class="hours morning" colspan="4" width="7%">9</td>
+<td class="hours morning" colspan="4" width="7%">10</td>
+<td class="hours morning" colspan="4" width="7%">11</td>
+<td class="hours afternoon" colspan="4" width="7%">12</td>
+<td class="hours afternoon" colspan="4" width="7%">13</td>
+<td class="hours afternoon" colspan="4" width="7%">14</td>
+<td class="hours afternoon" colspan="4" width="7%">15</td>
+<td class="hours afternoon" colspan="4" width="7%">16</td>
+<td class="hours afternoon" colspan="4" width="7%">17</td>
+<td class="hours evening" colspan="4" width="7%">18</td>
+<td class="hours evening" colspan="4" width="7%">19</td>
+</tr>
+<tr class="tmscalerow">
+<td class="unit15 morning" width="1%"></td>
+<td class="unit15 morning" width="1%"></td>
+<td class="unit15 morning" width="1%"></td>
+<td class="unit15 morning" width="1%"></td>
+<td class="unit15 morning" width="1%"></td>
+<td class="unit15 morning" width="1%"></td>
+<td class="unit15 morning" width="1%"></td>
+<td class="unit15 morning" width="1%"></td>
+<td class="unit15 morning" width="1%"></td>
+<td class="unit15 morning" width="1%"></td>
+<td class="unit15 morning" width="1%"></td>
+<td class="unit15 morning" width="1%"></td>
+<td class="unit15 morning" width="1%"></td>
+<td class="unit15 morning" width="1%"></td>
+<td class="unit15 morning" width="1%"></td>
+<td class="unit15 morning" width="1%"></td>
+<td class="unit15 afternoon" width="1%"></td>
+<td class="unit15 afternoon" width="1%"></td>
+<td class="unit15 afternoon" width="1%"></td>
+<td class="unit15 afternoon" width="1%"></td>
+<td class="unit15 afternoon" width="1%"></td>
+<td class="unit15 afternoon" width="1%"></td>
+<td class="unit15 afternoon" width="1%"></td>
+<td class="unit15 afternoon" width="1%"></td>
+<td class="unit15 afternoon" width="1%"></td>
+<td class="unit15 afternoon" width="1%"></td>
+<td class="unit15 afternoon" width="1%"></td>
+<td class="unit15 afternoon" width="1%"></td>
+<td class="unit15 afternoon" width="1%"></td>
+<td class="unit15 afternoon" width="1%"></td>
+<td class="unit15 afternoon" width="1%"></td>
+<td class="unit15 afternoon" width="1%"></td>
+<td class="unit15 afternoon" width="1%"></td>
+<td class="unit15 afternoon" width="1%"></td>
+<td class="unit15 afternoon" width="1%"></td>
+<td class="unit15 afternoon" width="1%"></td>
+<td class="unit15 afternoon" width="1%"></td>
+<td class="unit15 afternoon" width="1%"></td>
+<td class="unit15 afternoon" width="1%"></td>
+<td class="unit15 afternoon" width="1%"></td>
+<td class="unit15 evening" width="1%"></td>
+<td class="unit15 evening" width="1%"></td>
+<td class="unit15 evening" width="1%"></td>
+<td class="unit15 evening" width="1%"></td>
+<td class="unit15 evening" width="1%"></td>
+<td class="unit15 evening" width="1%"></td>
+<td class="unit15 evening" width="1%"></td>
+<td class="unit15 evening" width="1%"></td>
+ </tr>
+<tr class="userrow">
+<th class="usercell" rowspan="1">
+<div class="scheduleFirstCellItem">
+<div class="userNameImageLarge userNameAlignTop">
+<img class="profileImage" src="ag.cgi?page=UserImageDownload&amp;notimecard=1&amp;id=2373&amp;ct=1&amp;v=1769740833&amp;Width=20&amp;Height=20&amp;ext=.png" style="width: 20px; height: 20px;" align="absmiddle"><nobr>冨田 拓也</nobr>
+</div>
+<br><br></div></th>
+<td class="infocell" rowspan="1">
+<br></td>
+<td class="blank" colspan="48"><br></td>
+</tr>
+</tbody></table>
+</div>
+</div>
+<iframe id="AjaxFrame" name="AjaxFrame" src="javascript:false" frameborder="0" width="0px" height="0px" style="display:none"></iframe>
+<script language="JavaScript" type="text/javascript">
+<!--
+$(document).ready(function(){
+ $("form[name=ScheduleEntry]").find("input[type=submit], button[type=submit]").click(function(){
+ $(this.form).attr({submitbtn:this.name});
+ });
+});
+//-->
+</script>
+<form method="post" name="ScheduleEntry" action="ag.cgi?" onsubmit="return window.FormData ? !CB7.Form.AjaxSubmit( this ) : CB7.Form.AjaxPOST.SetEvent( this );" style="display:inline;">
+<input type="hidden" name="csrf_ticket" value="b6bfb18ecd707d0b0373b6531de768cd">
+<script language="JavaScript" type="text/javascript">
+$(function(){
+ $("form[name='ScheduleEntry']").find("input[type=text], textarea").one("input", function() {
+ CB7.BlockUnload(true);
+ });
+});
+</script>
+<div class="tabsheet">
+<table class="tabsheetTable" border="0" cellspacing="0" cellpadding="0" role="presentation">
+ <tbody><tr style="cursor:default">
+<td class="tabCenter" nowrap="">
+<img src="/cb1080/image/event16.png" align="absmiddle">通常予定
+</td><td class="tabOffCenter" nowrap="">
+ <a href="javascript:tabMove( 'ScheduleLongEntry' );" style="text-decoration:none; color:#000000"><img src="/cb1080/image/overevent16.png" align="absmiddle">翌日以降まで続く予定</a>
+</td><td class="tabOffCenter" nowrap="">
+ <a href="javascript:tabMove( 'ScheduleBannerEntry' );" style="text-decoration:none; color:#000000"><img src="/cb1080/image/banner16.png" align="absmiddle">期間予定</a>
+</td><td class="tabOffCenter" nowrap="">
+ <a href="javascript:tabMove( 'ScheduleRegularEntry' );" style="text-decoration:none; color:#000000"><img src="/cb1080/image/repeat16.png" align="absmiddle">繰り返し予定</a>
+</td> </tr>
+</tbody></table>
+</div>
+<div class="contentTab">
+<table class="vr_contentArea" width="100%"><tbody><tr><td class="vr_contentAreaTd">
+<table class="multicol" width="100%">
+ <tbody><tr valign="top">
+ <td>
+ <div class="vr_title clearfix">
+<div class="pagetitle">
+<h2 class="viewHeading">予定の登録</h2>
+</div>
+ </div>
+ </td>
+ </tr>
+ <tr valign="top">
+ <td class="formColumn" width="70%">
+ <div class="vr_formColumn"><!-- for ie margin -->
+ <div class="vr_mainColumn">
+<input type="hidden" name="page" value="ScheduleEntry">
+<input type="hidden" name="UID" value="2373">
+<input type="hidden" name="GID" value="">
+<input type="hidden" name="Date" value="da.2026.3.16">
+<input type="hidden" name="BDate" value="">
+<input type="hidden" name="CP" value="">
+<input type="hidden" name="NCP" value="sa">
+<input type="hidden" name="BCP" value="">
+<input type="hidden" name="SP" value="">
+<input type="hidden" name="r" value="">
+<input type="hidden" name="tab" value="">
+<script language="JavaScript" type="text/javascript"><!--
+WriteBackPageParameter( "", "" );
+//--></script><input type="hidden" name="BackPage" value="AGIndex">
+
+<div class="marginFull">
+<table class="formTable">
+ <tbody><tr>
+ <th rowspan="1" class="timehead" align="left" nowrap="">日付</th>
+ <td nowrap="" colspan="2">
+ <table role="presentation">
+ <tbody><tr>
+ <td>
+ <div id="singleDate">
+<script language="JavaScript" type="text/javascript"><!--
+var g_nThisYear = 2026 ;
+var g_arrayHolidays = [];
+g_arrayHolidays[0] = ",";
+g_arrayHolidays[1] = ",";
+g_arrayHolidays[2] = ",1/1,1/15,2/11,3/21,3/22,4/29,5/3,5/4,5/5,7/20,9/15,9/23,10/10,10/11,11/3,11/23,12/23,";
+g_arrayHolidays[3] = ",1/1,1/10,2/11,3/20,4/29,5/3,5/4,5/5,7/20,9/15,9/23,10/9,11/3,11/23,12/23,";
+g_arrayHolidays[4] = ",1/1,1/8,2/11,2/12,3/20,4/29,4/30,5/3,5/4,5/5,7/20,9/15,9/23,9/24,10/8,11/3,11/23,12/23,12/24,";
+g_arrayHolidays[5] = ",1/1,1/14,2/11,3/21,4/29,5/3,5/4,5/5,5/6,7/20,9/15,9/16,9/23,10/14,11/3,11/4,11/23,12/23,";
+g_arrayHolidays[6] = ",1/1,1/13,2/11,3/21,4/29,5/3,5/4,5/5,7/20,7/21,9/15,9/23,10/13,11/3,11/23,11/24,12/23,";
+g_arrayHolidays[7] = ",1/1,1/12,2/11,3/20,4/29,5/3,5/4,5/5,7/19,9/20,9/23,10/11,11/3,11/23,12/23,";
+g_arrayHolidays[8] = ",1/1,1/10,2/11,3/20,3/21,4/29,5/3,5/4,5/5,7/18,8/15,8/16,8/17,9/19,9/23,10/10,11/3,11/23,12/23,12/30,";
+g_arrayHolidays[9] = ",1/2,1/3,1/4,1/9,2/11,3/21,4/29,5/3,5/4,5/5,7/17,8/14,8/15,8/16,9/18,9/23,10/9,11/3,11/23,12/23,";
+g_arrayHolidays[10] = ",1/1,1/2,1/3,1/4,1/8,2/11,2/12,3/21,4/29,4/30,5/3,5/4,5/5,7/16,8/15,8/16,8/17,9/17,9/23,9/24,10/8,11/3,11/23,12/23,12/24,12/31,";
+g_arrayHolidays[11] = ",1/1,1/2,1/3,1/14,2/11,3/20,4/29,5/3,5/4,5/5,5/6,7/21,8/11,8/12,8/13,9/15,9/23,10/13,11/3,11/23,11/24,12/23,12/30,12/31,";
+g_arrayHolidays[12] = ",1/1,1/2,1/12,2/11,3/20,4/29,5/3,5/4,5/5,5/6,7/20,8/10,8/13,8/14,9/21,9/22,9/23,10/12,11/3,11/23,12/23,12/29,12/30,12/31,";
+g_arrayHolidays[13] = ",1/1,1/11,2/11,3/22,4/29,5/3,5/4,5/5,7/19,8/16,8/17,8/18,9/20,9/23,10/11,11/3,11/23,12/23,12/30,12/31,";
+g_arrayHolidays[14] = ",1/3,1/10,2/11,3/21,4/29,5/3,5/4,5/5,7/18,8/10,8/11,8/12,9/19,9/23,10/10,11/3,11/23,12/23,12/30,";
+g_arrayHolidays[15] = ",1/1,1/2,1/3,1/4,1/9,2/11,3/20,4/29,4/30,5/3,5/4,5/5,7/16,8/15,8/16,8/17,9/17,9/22,10/8,11/3,11/23,12/23,12/24,12/31,";
+g_arrayHolidays[16] = ",1/1,1/2,1/3,1/14,2/11,3/20,4/29,5/3,5/4,5/5,5/6,7/15,8/14,8/15,8/16,9/16,9/23,10/14,11/3,11/4,11/23,12/23,12/31,";
+g_arrayHolidays[17] = ",1/1,1/2,1/3,1/13,2/11,3/21,4/29,5/3,5/4,5/5,5/6,7/21,8/13,8/14,8/15,9/15,9/23,10/13,11/3,11/23,11/24,12/23,12/30,12/31,";
+g_arrayHolidays[18] = ",1/1,1/2,1/12,2/11,3/21,4/29,5/3,5/4,5/5,5/6,7/20,8/12,8/13,8/14,9/21,9/22,9/23,10/12,11/3,11/23,12/23,12/30,12/31,";
+g_arrayHolidays[19] = ",1/1,1/4,1/11,2/11,3/20,3/21,4/29,5/3,5/4,5/5,7/18,8/11,8/12,8/15,8/16,9/19,9/22,10/10,11/3,11/23,12/23,12/30,";
+g_arrayHolidays[20] = ",1/1,1/2,1/3,1/4,1/9,2/11,3/20,4/29,5/3,5/4,5/5,7/17,8/11,8/14,8/15,8/16,9/18,9/23,10/9,11/3,11/23,12/23,";
+g_arrayHolidays[21] = ",1/1,1/2,1/3,1/4,1/8,2/11,2/12,3/21,4/29,4/30,5/3,5/4,5/5,7/16,8/11,8/13,8/14,8/15,9/17,9/23,9/24,10/8,11/3,11/23,12/23,12/24,";
+g_arrayHolidays[22] = ",1/1,1/2,1/3,1/4,1/14,2/11,3/21,4/29,4/30,5/1,5/2,5/3,5/4,5/5,5/6,7/15,8/11,8/12,8/13,8/14,8/15,9/16,9/23,10/14,10/22,11/3,11/4,11/23,12/31,";
+g_arrayHolidays[23] = ",1/1,1/2,1/3,1/13,2/11,2/23,2/24,3/20,4/29,5/3,5/4,5/5,5/6,7/23,7/24,8/10,8/12,8/13,8/14,9/21,9/22,11/3,11/23,12/30,12/31,";
+g_arrayHolidays[24] = ",1/1,1/4,1/11,2/11,2/23,3/20,4/29,5/3,5/4,5/5,7/22,7/23,8/8,8/9,8/11,8/12,8/13,9/20,9/23,11/3,11/23,12/30,12/31,";
+g_arrayHolidays[25] = ",1/1,1/3,1/10,2/11,2/23,3/21,4/29,5/3,5/4,5/5,7/18,8/11,8/12,8/15,8/16,9/19,9/23,10/10,11/3,11/23,12/29,12/30,";
+g_arrayHolidays[26] = ",1/1,1/2,1/3,1/9,2/11,2/23,3/21,4/29,5/3,5/4,5/5,7/17,8/11,8/14,8/15,8/16,9/18,9/23,10/9,11/3,11/23,";
+g_arrayHolidays[27] = ",1/1,1/2,1/3,1/4,1/8,2/11,2/12,2/23,3/20,4/29,5/3,5/4,5/5,5/6,7/15,8/9,8/11,8/12,8/13,8/14,9/16,9/22,9/23,10/14,11/3,11/4,11/23,12/31,";
+g_arrayHolidays[28] = ",1/1,1/2,1/3,1/13,2/11,2/23,2/24,3/20,4/29,5/3,5/4,5/5,5/6,7/21,8/11,8/12,8/13,8/14,9/15,9/23,10/13,11/3,11/23,11/24,12/30,12/31,";
+g_arrayHolidays[29] = ",1/1,1/2,1/12,2/11,2/23,3/20,4/29,5/3,5/4,5/5,5/6,7/20,8/11,8/12,8/13,8/14,9/21,9/22,9/23,10/12,11/3,11/23,12/30,12/31,";
+g_arrayHolidays[30] = ",1/1,1/4,1/11,2/11,2/23,3/21,3/22,";
+g_arrayHolidays[31] = ",";
+g_arrayHolidays[32] = ",";
+g_arrayHolidays[33] = ",";
+g_arrayHolidays[34] = ",";
+g_arrayHolidays[35] = ",";
+g_arrayHolidays[36] = ",";
+//--></script>
+<nobr>
+<select name="SetDate.Year" onchange="InitDaySelect(this.form, &quot;SetDate&quot;, false, 1);">
+<option value="1997">1997年</option>
+<option value="1998">1998年</option>
+<option value="1999">1999年</option>
+<option value="2000">2000年</option>
+<option value="2001">2001年</option>
+<option value="2002">2002年</option>
+<option value="2003">2003年</option>
+<option value="2004">2004年</option>
+<option value="2005">2005年</option>
+<option value="2006">2006年</option>
+<option value="2007">2007年</option>
+<option value="2008">2008年</option>
+<option value="2009">2009年</option>
+<option value="2010">2010年</option>
+<option value="2011">2011年</option>
+<option value="2012">2012年</option>
+<option value="2013">2013年</option>
+<option value="2014">2014年</option>
+<option value="2015">2015年</option>
+<option value="2016">2016年</option>
+<option value="2017">2017年</option>
+<option value="2018">2018年</option>
+<option value="2019">2019年</option>
+<option value="2020">2020年</option>
+<option value="2021">2021年</option>
+<option value="2022">2022年</option>
+<option value="2023">2023年</option>
+<option value="2024">2024年</option>
+<option value="2025">2025年</option>
+<option value="2026" selected="">2026年</option>
+<option value="2027">2027年</option>
+<option value="2028">2028年</option>
+<option value="2029">2029年</option>
+<option value="2030">2030年</option>
+<option value="2031">2031年</option>
+<option value="2032">2032年</option>
+<option value="2033">2033年</option>
+</select><select name="SetDate.Month" onchange="InitDaySelect(this.form, &quot;SetDate&quot;, false, 1);">
+<option value="1">1月</option>
+<option value="2">2月</option>
+<option value="3" selected="">3月</option>
+<option value="4">4月</option>
+<option value="5">5月</option>
+<option value="6">6月</option>
+<option value="7">7月</option>
+<option value="8">8月</option>
+<option value="9">9月</option>
+<option value="10">10月</option>
+<option value="11">11月</option>
+<option value="12">12月</option>
+</select><select name="SetDate.Day">
+<option value="1" style="background:#ffcccc">1(日)</option>
+<option value="2">2(月)</option>
+<option value="3">3(火)</option>
+<option value="4">4(水)</option>
+<option value="5">5(木)</option>
+<option value="6">6(金)</option>
+<option value="7" style="background:#ccffff">7(土)</option>
+<option value="8" style="background:#ffcccc">8(日)</option>
+<option value="9">9(月)</option>
+<option value="10">10(火)</option>
+<option value="11">11(水)</option>
+<option value="12">12(木)</option>
+<option value="13">13(金)</option>
+<option value="14" style="background:#ccffff">14(土)</option>
+<option value="15" style="background:#ffcccc">15(日)</option>
+<option value="16" selected="">16(月)</option>
+<option value="17">17(火)</option>
+<option value="18">18(水)</option>
+<option value="19">19(木)</option>
+<option value="20" style="background:#ffcccc">20(金)</option>
+<option value="21" style="background:#ccffff">21(土)</option>
+<option value="22" style="background:#ffcccc">22(日)</option>
+<option value="23">23(月)</option>
+<option value="24">24(火)</option>
+<option value="25">25(水)</option>
+<option value="26">26(木)</option>
+<option value="27">27(金)</option>
+<option value="28" style="background:#ccffff">28(土)</option>
+<option value="29" style="background:#ffcccc">29(日)</option>
+<option value="30">30(月)</option>
+<option value="31">31(火)</option>
+</select><img src="/cb1080/image/calendarPicker16.png" align="absmiddle" style="cursor:hand" onclick="if(!document.forms[&quot;ScheduleEntry&quot;].elements[&quot;SetDate.Year&quot;].disabled) Display(&quot;SetDateCal&quot;);"></nobr>
+<iframe class="popupCalendarPicker" id="SetDateCal" src="ag.cgi?page=PopupCalendar&amp;notimecard=1&amp;date=da.2026.3.16&amp;fn=ScheduleEntry&amp;fp=SetDate&amp;fi=false&amp;parentFrame=" frameborder="no" scrolling="no" style="display:none;"></iframe>
+ </div>
+ <div id="multiDates" style="display:none">
+ <table class="inlineCalenderPickerMulti" role="presentation">
+ <tbody><tr>
+ <td class="selectedDatesColumn" style="display:none">
+ <div id="selectedDates" class="selectedDates monospace" style="height: 220.8px;">
+ <div class="selectedDate clearfix" id="picked-20260316"><span class="selectedDateText"><input type="hidden" name="SetMultiDates" value="da.2026.3.16">2026年3月16日(月)</span><img class="selectedDateDelete" src="/cb1080/image/delete16.png" align="absmiddle" border="0" id="deletepicked-20260316"></div></div>
+ </td>
+ <td class="vr_spaceColumn" style="display: none;">
+ </td>
+ <td class="multiPickerColumn">
+ <iframe class="calendarPickerMultiFrame" id="SetMultiDatesCal" src="ag.cgi?page=PopupCalendar&amp;notimecard=1&amp;date=da.2026.3.16&amp;fn=ScheduleEntry&amp;fp=SetMultiDates&amp;fi=false&amp;parentFrame=&amp;inline=1&amp;numOfMonths=3&amp;iframeID=SetMultiDatesCal" frameborder="no" scrolling="no"></iframe>
+ </td>
+ </tr>
+ </tbody></table>
+ <script language="JavaScript" type="text/javascript">
+ var dateArray = [];
+ dateObj = new Object();
+ dateObj.year = 2026;
+ dateObj.month = 3;
+ dateObj.day = 16;
+ dateArray.push(dateObj);
+ CB7.Form.MultiDates.load('SetMultiDatesCal', '/cb1080/image', dateArray );
+ </script>
+ </div>
+ </td>
+ <td>
+ <span class="vr_separator">｜</span> <a class="formSubmenu" id="switchToSingleDate" href="javascript:void(0);" onclick="SwitchToSingleDate(); return false;" style="display:none">1つの日付を指定する</a> <a class="formSubmenu" id="switchToMultiDates" href="javascript:void(0);" onclick="SwitchToMultiDates(); return false;">複数の日付を指定する</a>
+ </td>
+ </tr>
+ </tbody></table>
+ </td>
+ </tr>
+ <tr>
+ <th rowspan="1" class="timehead" align="left" nowrap="">時刻</th>
+ <td nowrap="">
+<select name="SetTime.Hour" class="SetTimeHourScheduleEntry">
+ <option value="">--時</option>
+ <option value="0">0時</option>
+ <option value="1">1時</option>
+ <option value="2">2時</option>
+ <option value="3">3時</option>
+ <option value="4">4時</option>
+ <option value="5">5時</option>
+ <option value="6">6時</option>
+ <option value="7">7時</option>
+ <option value="" selected="">--時</option>
+ <option value="8">8時</option>
+ <option value="9">9時</option>
+ <option value="10">10時</option>
+ <option value="11">11時</option>
+ <option value="12">12時</option>
+ <option value="13">13時</option>
+ <option value="14">14時</option>
+ <option value="15">15時</option>
+ <option value="16">16時</option>
+ <option value="17">17時</option>
+ <option value="18">18時</option>
+ <option value="19">19時</option>
+ <option value="20">20時</option>
+ <option value="21">21時</option>
+ <option value="22">22時</option>
+ <option value="23">23時</option>
+</select><select name="SetTime.Minute" class="SetTimeMinuteScheduleEntry">
+ <option value="">--分</option>
+<option value="0">00分</option><option value="15">15分</option><option value="30">30分</option><option value="45">45分</option></select>～<select name="EndTime.Hour" class="EndTimeHourScheduleEntry">
+ <option value="">--時</option>
+ <option value="0">0時</option>
+ <option value="1">1時</option>
+ <option value="2">2時</option>
+ <option value="3">3時</option>
+ <option value="4">4時</option>
+ <option value="5">5時</option>
+ <option value="6">6時</option>
+ <option value="7">7時</option>
+ <option value="" selected="">--時</option>
+ <option value="8">8時</option>
+ <option value="9">9時</option>
+ <option value="10">10時</option>
+ <option value="11">11時</option>
+ <option value="12">12時</option>
+ <option value="13">13時</option>
+ <option value="14">14時</option>
+ <option value="15">15時</option>
+ <option value="16">16時</option>
+ <option value="17">17時</option>
+ <option value="18">18時</option>
+ <option value="19">19時</option>
+ <option value="20">20時</option>
+ <option value="21">21時</option>
+ <option value="22">22時</option>
+ <option value="23">23時</option>
+ <option value="24">24時</option>
+</select><select name="EndTime.Minute" class="EndTimeMinuteScheduleEntry">
+ <option value="">--分</option>
+<option value="0">00分</option><option value="15">15分</option><option value="30">30分</option><option value="45">45分</option></select><script language="javascript" type="text/javascript">
+$(".SetTimeHourScheduleEntry").on("change", function() {
+ var endHourEl = $(".EndTimeHourScheduleEntry");
+ var startHour = parseInt($(this).val(), 10);
+ var startMinuite = parseInt($(".SetTimeMinuteScheduleEntry").val(), 10);
+ var endHour = parseInt(endHourEl.val(), 10);
+ var endMinute = parseInt($(".EndTimeMinuteScheduleEntry").val(), 10);
+ if (startHour >= 0 && isNaN(startMinuite) && isNaN(endHour) && isNaN(endMinute)) {
+ endHourEl.val(startHour + 1).trigger("change");
+ }
+ InitMinuteSelect(this.form, "SetTime");
+});
+$(".EndTimeHourScheduleEntry").on("change", function() {
+ InitMinuteSelect(this.form, "EndTime");
+});
+</script>
+ </td>
+ </tr>
+<script language="JavaScript" type="text/javascript">
+<!--
+function SetParticipantGroup(){
+var groupSelector = $('select[name="CGID"]');
+ if(groupSelector.length === 1){
+ var targetID='';
+ // 他のタブから移動してきた場合（例：常予定→繰り返し予定）は、移動前のタブで選択されていたグループを優先。
+ if('' !== ''){
+ targetID = '';
+ }
+ // そうでなければ（例：グループ日表示）は、移動前の画面で選択されていたグループを優先（もしあれば）。
+ else{
+ targetID = '';
+ }
+
+ var candidateChild = groupSelector.children('[value="' + targetID + '"]');
+ if(candidateChild.length===1){
+ groupSelector.val(targetID);
+ ChangeCGID( document.forms['ScheduleEntry'] );
+ $('select[name="CID"]').blur();
+ }
+ }
+}
+
+function SetFacilityGroup(){
+ var facilityGroupSelector = $('select[name="FGID"]');
+ if(facilityGroupSelector.length === 1){
+ var targetID='';
+ // 他のタブから移動してきた場合（例：常予定→繰り返し予定）は、移動前のタブで選択されていた施設グループを優先。
+ if('' !== ''){
+ targetID = '';
+ }
+ // そうでなければ（例：グループ日表示）は、移動前の画面で選択されていた施設グループを優先（もしあれば）。
+ else{
+ targetID = '';
+ //（全員）が指定されていたら何もしない
+ if(targetID==='0'){
+ return;
+ }
+ //（全施設）はurlパラメータでは'f'、セレクタのvalueは'0'なので、変換する。
+ else if(targetID==='f'){
+ targetID='0';
+ }
+ }
+
+ var candidateChild = facilityGroupSelector.children('[value="'+targetID+'"]');
+ if(candidateChild.length===1){
+ facilityGroupSelector.val(targetID);
+ ChangeFGID( document.forms['ScheduleEntry'] );
+ //.val('dummyvalue') -> デフォルトで全施設が選択するのを避けるため、存在し得ないdummyvalueを指定
+ $('select[name="FCID"]').val('dummyvalue').blur();
+ }
+ }
+}
+//-->
+</script>
+ <tr>
+ <th rowspan="1" class="datahead" align="left" nowrap="">会社情報</th>
+<script language="JavaScript" type="text/javascript">
+<!--
+function ViewCompanyData() 
+{
+ var form = document.forms["ScheduleEntry"];
+ PreSubmitCGID( form );PreSubmitFGID( form );
+ form.ViewAddress.value = "1";
+ form.r.value = "Calendar";
+ form.submit();
+}
+//-->
+</script>
+ <td><div style="border:1px solid #cccccc; background:#ffffff"><br></div></td>
+ <td>
+ <input class="vr_stdButton" type="submit" name="AddressSearch" value="← アドレス帳から取り込む" onclick="PreSubmitCGID( this.form );PreSubmitFGID( this.form );">
+ </td>
+ </tr>
+ <tr>
+ <th rowspan="1" class="datahead" align="left" nowrap="">予定</th>
+ <td nowrap="">
+<table class="layout" width="100%" role="presentation">
+<tbody><tr>
+<td width="1%" style="padding-left: 0;">
+ <select name="Event">
+<option value="">--
+</option><option value="s3,:テレワーク" class=" scheduleMarkEventItem scheduleMarkEventItem3">:テレワーク</option>
+<option value="s,:会議" class="">:会議</option>
+<option value="s,:来客" class="">:来客</option>
+<option value="s,:外出" class="">:外出</option>
+<option value="s,:出張" class="">:出張</option>
+<option value="s,:面接" class="">:面接</option>
+<option value="s,:休み" class="">:休み</option>
+<option value="s,:午前半休" class="">:午前半休</option>
+<option value="s,:午後半休" class="">:午後半休</option>
+<option value="s,:作業" class="">:作業</option>
+<option value="s,:打合せ" class="">:打合せ</option>
+<option value="s,:研修" class="">:研修</option>
+<option value="s,:直行" class="">:直行</option>
+<option value="s,:直帰" class="">:直帰</option>
+<option value="s,:直行直帰" class="">:直行直帰</option>
+<option value="s,:深夜勤務" class="">:深夜勤務</option>
+<option value="s,:休日出勤" class="">:休日出勤</option>
+<option value="s9,:出社勤務" class=" scheduleMarkEventItem scheduleMarkEventItem9">:出社勤務</option>
+<option value="s4,計画休業日" class=" scheduleMarkEventItem scheduleMarkEventItem4">計画休業日</option>
+ </select>
+</td>
+<td width="99%">
+<script language="JavaScript" type="text/javascript"><!--
+function KeyDown(e)
+{
+
+ if( e.keyCode == 13 )
+ {
+ e.cancelBubble = true;
+ return false;
+ }
+
+ return true;
+}
+//-->
+</script>
+ <input type="text" style="width:99%" name="Detail" id="" value="" onkeypress="return KeyDown(event);">
+</td>
+</tr>
+</tbody></table>
+ </td>
+ </tr>
+ <tr valign="top">
+ <th rowspan="1" class="datahead" align="left" nowrap="">メモ</th>
+ <td colspan="" rowspan="">
+<textarea name="Memo" class="textareaData" style="width:32em;" rows="6" title="メモ" wrap="virtual"></textarea>
+ </td>
+ </tr>
+<script type="text/javascript" charset="UTF-8" src="/cb1080/html/order.js?_v=1086120220502162043.js"></script>
+<script language="JavaScript" type="text/javascript"><!--
+function AddMember(f,c,s) { CB7.SelectOrder.AddSelectedItems(f,c,s); }
+function RemoveMember(f,c,s) { CB7.SelectOrder.RemoveSelectedItems(f,c,s); }
+function au(a, id, text) { CB7.SelectOrder.AddItem(a, id, text, true); }
+function ag(a, id, text) { CB7.SelectOrder.AddItem(a, id, text); }
+//--></script>
+<script language="JavaScript" type="text/javascript"><!--
+function OrderTop( formName, selectName ) { CB7.SelectOrder.OrderTop( formName, selectName ); }
+function OrderUp( formName, selectName ) { CB7.SelectOrder.OrderUp( formName, selectName ); }
+function OrderDown( formName, selectName ) { CB7.SelectOrder.OrderDown( formName, selectName ); }
+function OrderBottom( formName, selectName ) { CB7.SelectOrder.OrderBottom( formName, selectName ); }
+//--></script>
+<script language="JavaScript" type="text/javascript">
+<!--
+function on_CGID_all( a )
+{
+ag(a,156,"奥野 賢二");
+ag(a,158,"岡本 智克");
+ag(a,160,"岩﨑 浩平");
+ag(a,162,"今野 一重");
+ag(a,168,"小林 雅彦");
+ag(a,176,"川村 洋介");
+ag(a,178,"大谷 孝治");
+ag(a,186,"野村 康弘");
+ag(a,188,"落合 俊章");
+ag(a,202,"望月 健一");
+ag(a,208,"粟野 吉之");
+ag(a,212,"吉永 隆一");
+ag(a,218,"金澤 茂弘");
+ag(a,222,"漆山 みか");
+ag(a,226,"秋山 淳");
+ag(a,236,"田村 学");
+ag(a,242,"堀越 水軌");
+ag(a,252,"鈴木 伸之");
+ag(a,262,"門舛 敬一");
+ag(a,296,"新海 哲哉");
+ag(a,308,"中野 健二");
+ag(a,336,"元気　子");
+ag(a,350,"山口 潤");
+ag(a,410,"井上 寛之");
+ag(a,420,"川島 健太郎");
+ag(a,430,"岡 稔");
+ag(a,450,"浜地 隆史");
+ag(a,498,"原田 耕作");
+ag(a,500,"小松 直樹");
+ag(a,504,"増子 賢一");
+ag(a,514,"佐藤 雄樹");
+ag(a,520,"山下 隆二");
+ag(a,552,"森岡 智明");
+ag(a,2164,"田中 広美");
+ag(a,2166,"関口 和男");
+ag(a,2245,"小川 哲也");
+ag(a,2359,"佐藤 貴之");
+ag(a,2361,"小野木 祐典");
+ag(a,2365,"米山 龍登志");
+ag(a,2367,"佐藤 寿彦");
+ag(a,2371,"太田 良和");
+ag(a,2373,"冨田 拓也");
+ag(a,2377,"石田 道明");
+ag(a,2385,"早乙女 敏行");
+ag(a,2395,"安田 龍");
+ag(a,2733,"保見 加織");
+ag(a,2750,"窪田 光紘");
+ag(a,2754,"滝川 嘉一");
+ag(a,2806,"鍋島 信彦");
+ag(a,3176,"安部 摩衣子");
+ag(a,3226,"星野 孝");
+ag(a,3243,"元気 太郎");
+ag(a,3333,"三宅 信太郎");
+ag(a,3438,"島田 貴之");
+ag(a,4237,"佐藤 裕紀");
+ag(a,4872,"元気　花子");
+ag(a,5126,"岸本 善斗");
+ag(a,5128,"城間 大輔");
+ag(a,5130,"田中 佑昌");
+ag(a,5272,"山内 隆");
+ag(a,5331,"松本 広志");
+ag(a,5709,"石井 雅也");
+ag(a,5860,"月岡 綾乃");
+ag(a,7017,"井田 瑞希");
+ag(a,7166,"伊藤 啓太");
+ag(a,7206,"藤原 祥智");
+ag(a,7387,"石井 千奈未");
+ag(a,7391,"川島 一輝");
+ag(a,7397,"横田 裕貴");
+ag(a,7438,"木村 明範");
+ag(a,7467,"黒岩 淳");
+ag(a,7694,"田中 泰彦");
+ag(a,7776,"大澤 洸平");
+ag(a,7780,"キャッシュ ジェームス");
+ag(a,7784,"永清 宏一");
+ag(a,7792,"久松 雄樹");
+ag(a,7921,"佐藤 孝年");
+ag(a,8050,"永棟 達夫");
+ag(a,8103,"野口 英治");
+ag(a,8313,"有冨 勇帆");
+ag(a,8315,"大塚 裕太郎");
+ag(a,8319,"中村 文香");
+ag(a,8321,"平澤 実穂乃");
+ag(a,8520,"梅林 里奈");
+ag(a,8580,"井上 治輝");
+ag(a,8588,"畑川 里沙");
+ag(a,8590,"原 友美");
+ag(a,8877,"多田 夏実");
+ag(a,8879,"世永 未祐");
+ag(a,8881,"古川 雅基");
+ag(a,8883,"森元 一成");
+ag(a,8990,"金子 凌大");
+ag(a,9128,"藤巻 靖裕");
+ag(a,9309,"須田 千鶴");
+ag(a,9345,"児塔 脩平");
+ag(a,9935,"栁生 広樹");
+ag(a,9937,"小山 祥武");
+ag(a,9939,"田村 博");
+ag(a,9989,"廣瀬 允耶");
+ag(a,9991,"山岡 永輝");
+ag(a,9993,"山﨑 亮輔");
+ag(a,10036,"吉田 尚人");
+ag(a,10048,"礒部 素明");
+ag(a,10055,"殿村 朋");
+ag(a,10063,"本藤 愛美");
+ag(a,10077,"河村 むつみ");
+ag(a,10101,"竹内 耕一");
+ag(a,10108,"山岸 義幸");
+ag(a,10118,"田邉 哲也");
+ag(a,10194,"中野 篤志");
+ag(a,10196,"浅井 斗真");
+ag(a,10200,"井上 真敬");
+ag(a,10202,"田浦　大和");
+ag(a,10241,"長瀬 孝司");
+ag(a,10247,"舘野 菜那");
+ag(a,10254,"角本 祐希");
+ag(a,10256,"加耒 直人");
+ag(a,10280,"山内 強志");
+ag(a,10287,"古賀 晋太朗");
+ag(a,10306,"北沢 亮");
+ag(a,10316,"井本 明里");
+ag(a,10322,"馬 騁");
+ag(a,10362,"清水 規光");
+ag(a,10376,"山下 省吾");
+ag(a,10379,"高木 柾希");
+ag(a,10381,"塩練 訓");
+ag(a,10383,"小松 勇毅");
+ag(a,10398,"佐藤 茉莉奈");
+ag(a,10400,"目黒 美姫子");
+ag(a,10417,"島崎 九十九");
+}
+function on_CGID_558( a )
+{
+ag(a,558,"[役員会]");
+ag(a,3226,"星野 孝");
+ag(a,242,"堀越 水軌");
+ag(a,2733,"保見 加織");
+ag(a,9128,"藤巻 靖裕");
+ag(a,10108,"山岸 義幸");
+}
+function on_CGID_9451( a )
+{
+ag(a,9451,"[管理本部]");
+ag(a,3226,"星野 孝");
+ag(a,178,"大谷 孝治");
+ag(a,2733,"保見 加織");
+}
+function on_CGID_9733( a )
+{
+ag(a,9733,"[HR部]");
+ag(a,178,"大谷 孝治");
+ag(a,5860,"月岡 綾乃");
+ag(a,2373,"冨田 拓也");
+ag(a,3333,"三宅 信太郎");
+ag(a,8520,"梅林 里奈");
+}
+function on_CGID_9898( a )
+{
+ag(a,9898,"[キャリアチェンジ室]");
+ag(a,178,"大谷 孝治");
+ag(a,7166,"伊藤 啓太");
+}
+function on_CGID_9896( a )
+{
+ag(a,9896,"[DX推進部]");
+ag(a,168,"小林 雅彦");
+ag(a,514,"佐藤 雄樹");
+ag(a,520,"山下 隆二");
+ag(a,3176,"安部 摩衣子");
+ag(a,3438,"島田 貴之");
+ag(a,8990,"金子 凌大");
+ag(a,9345,"児塔 脩平");
+}
+function on_CGID_9124( a )
+{
+ag(a,9124,"[経営企画室]");
+ag(a,9128,"藤巻 靖裕");
+}
+function on_CGID_4072( a )
+{
+ag(a,4072,"[DE事業本部]");
+ag(a,242,"堀越 水軌");
+ag(a,162,"今野 一重");
+ag(a,202,"望月 健一");
+ag(a,296,"新海 哲哉");
+ag(a,252,"鈴木 伸之");
+ag(a,226,"秋山 淳");
+ag(a,208,"粟野 吉之");
+ag(a,430,"岡 稔");
+ag(a,498,"原田 耕作");
+ag(a,504,"増子 賢一");
+ag(a,2377,"石田 道明");
+ag(a,2395,"安田 龍");
+ag(a,2245,"小川 哲也");
+ag(a,176,"川村 洋介");
+ag(a,188,"落合 俊章");
+ag(a,156,"奥野 賢二");
+ag(a,160,"岩﨑 浩平");
+ag(a,186,"野村 康弘");
+ag(a,420,"川島 健太郎");
+ag(a,410,"井上 寛之");
+ag(a,2166,"関口 和男");
+ag(a,2164,"田中 広美");
+ag(a,2359,"佐藤 貴之");
+ag(a,2367,"佐藤 寿彦");
+ag(a,2371,"太田 良和");
+ag(a,2750,"窪田 光紘");
+ag(a,262,"門舛 敬一");
+ag(a,450,"浜地 隆史");
+ag(a,4237,"佐藤 裕紀");
+ag(a,5126,"岸本 善斗");
+ag(a,5331,"松本 広志");
+ag(a,236,"田村 学");
+ag(a,2365,"米山 龍登志");
+ag(a,5128,"城間 大輔");
+ag(a,5130,"田中 佑昌");
+ag(a,5709,"石井 雅也");
+ag(a,7017,"井田 瑞希");
+ag(a,7206,"藤原 祥智");
+ag(a,7391,"川島 一輝");
+ag(a,7397,"横田 裕貴");
+ag(a,7438,"木村 明範");
+ag(a,212,"吉永 隆一");
+ag(a,7780,"キャッシュ ジェームス");
+ag(a,7784,"永清 宏一");
+ag(a,7792,"久松 雄樹");
+ag(a,7694,"田中 泰彦");
+ag(a,7921,"佐藤 孝年");
+ag(a,8103,"野口 英治");
+ag(a,8050,"永棟 達夫");
+ag(a,8313,"有冨 勇帆");
+ag(a,8315,"大塚 裕太郎");
+ag(a,8321,"平澤 実穂乃");
+ag(a,2385,"早乙女 敏行");
+ag(a,2754,"滝川 嘉一");
+ag(a,552,"森岡 智明");
+ag(a,2361,"小野木 祐典");
+ag(a,350,"山口 潤");
+ag(a,5272,"山内 隆");
+ag(a,2806,"鍋島 信彦");
+ag(a,218,"金澤 茂弘");
+ag(a,308,"中野 健二");
+ag(a,500,"小松 直樹");
+ag(a,7387,"石井 千奈未");
+ag(a,8580,"井上 治輝");
+ag(a,8588,"畑川 里沙");
+ag(a,8590,"原 友美");
+ag(a,8877,"多田 夏実");
+ag(a,8879,"世永 未祐");
+ag(a,8881,"古川 雅基");
+ag(a,8883,"森元 一成");
+ag(a,9309,"須田 千鶴");
+ag(a,158,"岡本 智克");
+ag(a,7467,"黒岩 淳");
+ag(a,7776,"大澤 洸平");
+ag(a,8319,"中村 文香");
+ag(a,10241,"長瀬 孝司");
+}
+function on_CGID_5477( a )
+{
+ag(a,5477,"[プロデュース部]");
+ag(a,262,"門舛 敬一");
+ag(a,212,"吉永 隆一");
+ag(a,450,"浜地 隆史");
+ag(a,2754,"滝川 嘉一");
+}
+function on_CGID_6042( a )
+{
+ag(a,6042,"[契約社員]");
+ag(a,222,"漆山 みか");
+ag(a,10383,"小松 勇毅");
+}
+function on_CGID_8442( a )
+{
+ag(a,8442,"[派遣社員]");
+ag(a,9935,"栁生 広樹");
+ag(a,9937,"小山 祥武");
+ag(a,9939,"田村 博");
+ag(a,9989,"廣瀬 允耶");
+ag(a,9991,"山岡 永輝");
+ag(a,9993,"山﨑 亮輔");
+ag(a,10036,"吉田 尚人");
+ag(a,10048,"礒部 素明");
+ag(a,10055,"殿村 朋");
+ag(a,10063,"本藤 愛美");
+ag(a,10077,"河村 むつみ");
+ag(a,10101,"竹内 耕一");
+ag(a,10118,"田邉 哲也");
+ag(a,10194,"中野 篤志");
+ag(a,10196,"浅井 斗真");
+ag(a,10200,"井上 真敬");
+ag(a,10202,"田浦　大和");
+ag(a,10247,"舘野 菜那");
+ag(a,10254,"角本 祐希");
+ag(a,10256,"加耒 直人");
+ag(a,10280,"山内 強志");
+ag(a,10287,"古賀 晋太朗");
+ag(a,10306,"北沢 亮");
+ag(a,10316,"井本 明里");
+ag(a,10322,"馬 騁");
+ag(a,10362,"清水 規光");
+ag(a,10381,"塩練 訓");
+ag(a,10398,"佐藤 茉莉奈");
+ag(a,10400,"目黒 美姫子");
+ag(a,10417,"島崎 九十九");
+}
+function on_CGID_3673( a )
+{
+ag(a,3673,"[開発サポート]");
+ag(a,158,"岡本 智克");
+ag(a,2359,"佐藤 貴之");
+ag(a,410,"井上 寛之");
+ag(a,7694,"田中 泰彦");
+ag(a,186,"野村 康弘");
+ag(a,2367,"佐藤 寿彦");
+ag(a,9309,"須田 千鶴");
+}
+function on_CGID_3164( a )
+{
+ag(a,3164,"[機材管理]");
+}
+function on_CGID_3125( a )
+{
+ag(a,3125,"[正社員]");
+ag(a,514,"佐藤 雄樹");
+ag(a,520,"山下 隆二");
+ag(a,168,"小林 雅彦");
+ag(a,262,"門舛 敬一");
+ag(a,450,"浜地 隆史");
+ag(a,2733,"保見 加織");
+ag(a,236,"田村 学");
+ag(a,252,"鈴木 伸之");
+ag(a,178,"大谷 孝治");
+ag(a,158,"岡本 智克");
+ag(a,242,"堀越 水軌");
+ag(a,162,"今野 一重");
+ag(a,202,"望月 健一");
+ag(a,176,"川村 洋介");
+ag(a,226,"秋山 淳");
+ag(a,188,"落合 俊章");
+ag(a,156,"奥野 賢二");
+ag(a,160,"岩﨑 浩平");
+ag(a,186,"野村 康弘");
+ag(a,208,"粟野 吉之");
+ag(a,212,"吉永 隆一");
+ag(a,218,"金澤 茂弘");
+ag(a,296,"新海 哲哉");
+ag(a,308,"中野 健二");
+ag(a,420,"川島 健太郎");
+ag(a,410,"井上 寛之");
+ag(a,430,"岡 稔");
+ag(a,350,"山口 潤");
+ag(a,500,"小松 直樹");
+ag(a,498,"原田 耕作");
+ag(a,504,"増子 賢一");
+ag(a,552,"森岡 智明");
+ag(a,2166,"関口 和男");
+ag(a,2164,"田中 広美");
+ag(a,2385,"早乙女 敏行");
+ag(a,2377,"石田 道明");
+ag(a,2359,"佐藤 貴之");
+ag(a,2361,"小野木 祐典");
+ag(a,2367,"佐藤 寿彦");
+ag(a,2365,"米山 龍登志");
+ag(a,2395,"安田 龍");
+ag(a,2371,"太田 良和");
+ag(a,2373,"冨田 拓也");
+ag(a,2245,"小川 哲也");
+ag(a,2754,"滝川 嘉一");
+ag(a,2750,"窪田 光紘");
+ag(a,3226,"星野 孝");
+ag(a,3176,"安部 摩衣子");
+ag(a,3438,"島田 貴之");
+ag(a,2806,"鍋島 信彦");
+ag(a,3333,"三宅 信太郎");
+ag(a,4237,"佐藤 裕紀");
+ag(a,5126,"岸本 善斗");
+ag(a,5128,"城間 大輔");
+ag(a,5130,"田中 佑昌");
+ag(a,5272,"山内 隆");
+ag(a,5331,"松本 広志");
+ag(a,5860,"月岡 綾乃");
+ag(a,5709,"石井 雅也");
+ag(a,7017,"井田 瑞希");
+ag(a,7166,"伊藤 啓太");
+ag(a,7206,"藤原 祥智");
+ag(a,7387,"石井 千奈未");
+ag(a,7391,"川島 一輝");
+ag(a,7397,"横田 裕貴");
+ag(a,7438,"木村 明範");
+ag(a,7776,"大澤 洸平");
+ag(a,7780,"キャッシュ ジェームス");
+ag(a,7784,"永清 宏一");
+ag(a,7792,"久松 雄樹");
+ag(a,7694,"田中 泰彦");
+ag(a,7921,"佐藤 孝年");
+ag(a,8103,"野口 英治");
+ag(a,8050,"永棟 達夫");
+ag(a,8313,"有冨 勇帆");
+ag(a,8315,"大塚 裕太郎");
+ag(a,8319,"中村 文香");
+ag(a,8321,"平澤 実穂乃");
+ag(a,8580,"井上 治輝");
+ag(a,8588,"畑川 里沙");
+ag(a,8590,"原 友美");
+ag(a,8520,"梅林 里奈");
+ag(a,8877,"多田 夏実");
+ag(a,8879,"世永 未祐");
+ag(a,8881,"古川 雅基");
+ag(a,8883,"森元 一成");
+ag(a,8990,"金子 凌大");
+ag(a,9128,"藤巻 靖裕");
+ag(a,9345,"児塔 脩平");
+ag(a,9309,"須田 千鶴");
+ag(a,7467,"黒岩 淳");
+ag(a,10108,"山岸 義幸");
+}
+function on_CGID_4712( a )
+{
+ag(a,4712,"[PRJ-BN-W6]");
+ag(a,296,"新海 哲哉");
+ag(a,156,"奥野 賢二");
+ag(a,262,"門舛 敬一");
+ag(a,2164,"田中 広美");
+ag(a,158,"岡本 智克");
+ag(a,208,"粟野 吉之");
+ag(a,504,"増子 賢一");
+ag(a,176,"川村 洋介");
+ag(a,7397,"横田 裕貴");
+ag(a,202,"望月 健一");
+ag(a,552,"森岡 智明");
+ag(a,498,"原田 耕作");
+ag(a,212,"吉永 隆一");
+ag(a,4237,"佐藤 裕紀");
+ag(a,8315,"大塚 裕太郎");
+}
+function on_CGID_5669( a )
+{
+ag(a,5669,"[PRJ-GK-FW]");
+ag(a,158,"岡本 智克");
+ag(a,2359,"佐藤 貴之");
+ag(a,410,"井上 寛之");
+ag(a,186,"野村 康弘");
+ag(a,2367,"佐藤 寿彦");
+}
+function on_CGID_8934( a )
+{
+ag(a,8934,"[PRJ-BR-PS]");
+ag(a,212,"吉永 隆一");
+ag(a,188,"落合 俊章");
+ag(a,186,"野村 康弘");
+ag(a,2377,"石田 道明");
+ag(a,5126,"岸本 善斗");
+ag(a,5331,"松本 広志");
+ag(a,7784,"永清 宏一");
+ag(a,410,"井上 寛之");
+ag(a,8881,"古川 雅基");
+ag(a,8580,"井上 治輝");
+ag(a,2245,"小川 哲也");
+ag(a,8321,"平澤 実穂乃");
+ag(a,2395,"安田 龍");
+ag(a,2750,"窪田 光紘");
+ag(a,500,"小松 直樹");
+ag(a,2806,"鍋島 信彦");
+ag(a,8050,"永棟 達夫");
+ag(a,8588,"畑川 里沙");
+ag(a,7387,"石井 千奈未");
+ag(a,9935,"栁生 広樹");
+ag(a,9991,"山岡 永輝");
+ag(a,9993,"山﨑 亮輔");
+ag(a,222,"漆山 みか");
+ag(a,10194,"中野 篤志");
+ag(a,7206,"藤原 祥智");
+ag(a,10362,"清水 規光");
+ag(a,10381,"塩練 訓");
+ag(a,10383,"小松 勇毅");
+}
+function on_CGID_9355( a )
+{
+ag(a,9355,"[PRJ-GK-SB]");
+ag(a,242,"堀越 水軌");
+ag(a,2359,"佐藤 貴之");
+ag(a,158,"岡本 智克");
+ag(a,262,"門舛 敬一");
+ag(a,7921,"佐藤 孝年");
+ag(a,2367,"佐藤 寿彦");
+ag(a,5128,"城間 大輔");
+ag(a,5709,"石井 雅也");
+ag(a,162,"今野 一重");
+ag(a,308,"中野 健二");
+ag(a,8877,"多田 夏実");
+ag(a,7792,"久松 雄樹");
+ag(a,8315,"大塚 裕太郎");
+ag(a,5130,"田中 佑昌");
+ag(a,4237,"佐藤 裕紀");
+ag(a,2371,"太田 良和");
+ag(a,8883,"森元 一成");
+ag(a,7780,"キャッシュ ジェームス");
+ag(a,188,"落合 俊章");
+ag(a,2361,"小野木 祐典");
+ag(a,500,"小松 直樹");
+ag(a,208,"粟野 吉之");
+ag(a,2806,"鍋島 信彦");
+ag(a,8588,"畑川 里沙");
+ag(a,252,"鈴木 伸之");
+ag(a,7017,"井田 瑞希");
+ag(a,10247,"舘野 菜那");
+ag(a,10316,"井本 明里");
+}
+function on_CGID_9433( a )
+{
+ag(a,9433,"[PRJ-BN-NX]");
+ag(a,156,"奥野 賢二");
+ag(a,212,"吉永 隆一");
+ag(a,296,"新海 哲哉");
+ag(a,7391,"川島 一輝");
+ag(a,498,"原田 耕作");
+ag(a,218,"金澤 茂弘");
+ag(a,176,"川村 洋介");
+ag(a,2164,"田中 広美");
+ag(a,7397,"横田 裕貴");
+ag(a,186,"野村 康弘");
+ag(a,430,"岡 稔");
+ag(a,236,"田村 学");
+ag(a,420,"川島 健太郎");
+ag(a,226,"秋山 淳");
+ag(a,7438,"木村 明範");
+ag(a,2377,"石田 道明");
+ag(a,8590,"原 友美");
+ag(a,350,"山口 潤");
+ag(a,7694,"田中 泰彦");
+ag(a,8879,"世永 未祐");
+ag(a,202,"望月 健一");
+ag(a,9937,"小山 祥武");
+ag(a,9939,"田村 博");
+ag(a,2385,"早乙女 敏行");
+ag(a,10247,"舘野 菜那");
+ag(a,10254,"角本 祐希");
+ag(a,10256,"加耒 直人");
+ag(a,10400,"目黒 美姫子");
+}
+function on_CGID_9635( a )
+{
+ag(a,9635,"[PRJ-EB-DT]");
+ag(a,2359,"佐藤 貴之");
+ag(a,7921,"佐藤 孝年");
+ag(a,262,"門舛 敬一");
+ag(a,202,"望月 健一");
+ag(a,2754,"滝川 嘉一");
+ag(a,2750,"窪田 光紘");
+ag(a,160,"岩﨑 浩平");
+ag(a,2365,"米山 龍登志");
+ag(a,7467,"黒岩 淳");
+ag(a,2166,"関口 和男");
+ag(a,8313,"有冨 勇帆");
+ag(a,410,"井上 寛之");
+ag(a,9309,"須田 千鶴");
+ag(a,2377,"石田 道明");
+ag(a,8319,"中村 文香");
+ag(a,10036,"吉田 尚人");
+ag(a,10196,"浅井 斗真");
+ag(a,10241,"長瀬 孝司");
+ag(a,10280,"山内 強志");
+ag(a,10306,"北沢 亮");
+}
+function on_CGID_9701( a )
+{
+ag(a,9701,"[PRJ-GF-VQ]");
+ag(a,2359,"佐藤 貴之");
+ag(a,262,"門舛 敬一");
+ag(a,7921,"佐藤 孝年");
+ag(a,2367,"佐藤 寿彦");
+ag(a,7438,"木村 明範");
+ag(a,202,"望月 健一");
+ag(a,2166,"関口 和男");
+}
+function on_CGID_9718( a )
+{
+ag(a,9718,"[PRJ-GK-SY]");
+ag(a,2359,"佐藤 貴之");
+ag(a,262,"門舛 敬一");
+ag(a,202,"望月 健一");
+ag(a,5126,"岸本 善斗");
+ag(a,2361,"小野木 祐典");
+ag(a,410,"井上 寛之");
+ag(a,7387,"石井 千奈未");
+ag(a,2754,"滝川 嘉一");
+ag(a,8588,"畑川 里沙");
+ag(a,9309,"須田 千鶴");
+}
+function on_CGID_9722( a )
+{
+ag(a,9722,"[PRJ-GK-CG]");
+ag(a,7921,"佐藤 孝年");
+ag(a,7776,"大澤 洸平");
+ag(a,8103,"野口 英治");
+ag(a,7387,"石井 千奈未");
+ag(a,7694,"田中 泰彦");
+ag(a,2361,"小野木 祐典");
+}
+function on_CGID_9884( a )
+{
+ag(a,9884,"[PRJ-DH-RW]");
+ag(a,212,"吉永 隆一");
+ag(a,410,"井上 寛之");
+ag(a,2754,"滝川 嘉一");
+ag(a,186,"野村 康弘");
+}
+function on_CGID_9910( a )
+{
+ag(a,9910,"[PRJ-AZ-PP]");
+ag(a,262,"門舛 敬一");
+ag(a,7921,"佐藤 孝年");
+ag(a,2754,"滝川 嘉一");
+ag(a,5272,"山内 隆");
+ag(a,10202,"田浦　大和");
+ag(a,8103,"野口 英治");
+ag(a,9989,"廣瀬 允耶");
+ag(a,10048,"礒部 素明");
+ag(a,226,"秋山 淳");
+ag(a,8590,"原 友美");
+ag(a,8050,"永棟 達夫");
+ag(a,10055,"殿村 朋");
+ag(a,10101,"竹内 耕一");
+ag(a,10200,"井上 真敬");
+ag(a,10287,"古賀 晋太朗");
+ag(a,10322,"馬 騁");
+}
+function on_CGID_10349( a )
+{
+ag(a,10349,"[PRJ-PO-NY]");
+ag(a,262,"門舛 敬一");
+ag(a,2754,"滝川 嘉一");
+ag(a,5126,"岸本 善斗");
+ag(a,2361,"小野木 祐典");
+ag(a,5331,"松本 広志");
+ag(a,2371,"太田 良和");
+ag(a,8321,"平澤 実穂乃");
+ag(a,410,"井上 寛之");
+ag(a,7017,"井田 瑞希");
+ag(a,10376,"山下 省吾");
+ag(a,10379,"高木 柾希");
+ag(a,10398,"佐藤 茉莉奈");
+ag(a,10417,"島崎 九十九");
+}
+function on_CGID_10404( a )
+{
+ag(a,10404,"[PRJ-DK-MR]");
+ag(a,262,"門舛 敬一");
+ag(a,2754,"滝川 嘉一");
+ag(a,8313,"有冨 勇帆");
+ag(a,10196,"浅井 斗真");
+ag(a,2377,"石田 道明");
+ag(a,226,"秋山 淳");
+ag(a,10101,"竹内 耕一");
+}
+function on_CGID_9370( a )
+{
+ag(a,9370,"[TEAM-GD1]");
+ag(a,162,"今野 一重");
+ag(a,5130,"田中 佑昌");
+ag(a,308,"中野 健二");
+ag(a,202,"望月 健一");
+ag(a,420,"川島 健太郎");
+ag(a,2371,"太田 良和");
+ag(a,5709,"石井 雅也");
+ag(a,4237,"佐藤 裕紀");
+ag(a,8877,"多田 夏実");
+ag(a,7792,"久松 雄樹");
+}
+function on_CGID_9372( a )
+{
+ag(a,9372,"[TEAM-GD2]");
+ag(a,5331,"松本 広志");
+ag(a,5126,"岸本 善斗");
+ag(a,7206,"藤原 祥智");
+ag(a,5128,"城間 大輔");
+ag(a,7784,"永清 宏一");
+ag(a,8321,"平澤 実穂乃");
+ag(a,8881,"古川 雅基");
+ag(a,10383,"小松 勇毅");
+}
+function on_CGID_9374( a )
+{
+ag(a,9374,"[TEAM-GD3]");
+ag(a,2166,"関口 和男");
+ag(a,5272,"山内 隆");
+ag(a,7438,"木村 明範");
+ag(a,8313,"有冨 勇帆");
+ag(a,8103,"野口 英治");
+ag(a,7776,"大澤 洸平");
+}
+function on_CGID_9376( a )
+{
+ag(a,9376,"[TEAM-GD4]");
+ag(a,156,"奥野 賢二");
+ag(a,176,"川村 洋介");
+ag(a,2164,"田中 広美");
+ag(a,7391,"川島 一輝");
+ag(a,7397,"横田 裕貴");
+ag(a,8315,"大塚 裕太郎");
+ag(a,8883,"森元 一成");
+}
+function on_CGID_9382( a )
+{
+ag(a,9382,"[TEAM-ART1]");
+ag(a,226,"秋山 淳");
+ag(a,350,"山口 潤");
+ag(a,236,"田村 学");
+ag(a,430,"岡 稔");
+ag(a,2377,"石田 道明");
+ag(a,2245,"小川 哲也");
+ag(a,7694,"田中 泰彦");
+ag(a,218,"金澤 茂弘");
+ag(a,8050,"永棟 達夫");
+ag(a,8879,"世永 未祐");
+ag(a,8590,"原 友美");
+ag(a,252,"鈴木 伸之");
+}
+function on_CGID_9384( a )
+{
+ag(a,9384,"[TEAM-ART2]");
+ag(a,2361,"小野木 祐典");
+ag(a,504,"増子 賢一");
+ag(a,208,"粟野 吉之");
+ag(a,2806,"鍋島 信彦");
+ag(a,2395,"安田 龍");
+ag(a,498,"原田 耕作");
+ag(a,2385,"早乙女 敏行");
+ag(a,500,"小松 直樹");
+ag(a,552,"森岡 智明");
+ag(a,7017,"井田 瑞希");
+ag(a,7387,"石井 千奈未");
+ag(a,8588,"畑川 里沙");
+ag(a,8319,"中村 文香");
+}
+function on_CGID_9390( a )
+{
+ag(a,9390,"[TEAM-TEC1]");
+ag(a,410,"井上 寛之");
+ag(a,188,"落合 俊章");
+ag(a,186,"野村 康弘");
+ag(a,7780,"キャッシュ ジェームス");
+ag(a,9309,"須田 千鶴");
+}
+function on_CGID_9396( a )
+{
+ag(a,9396,"[TEAM-SVR1]");
+ag(a,2750,"窪田 光紘");
+ag(a,160,"岩﨑 浩平");
+ag(a,7467,"黒岩 淳");
+ag(a,2365,"米山 龍登志");
+ag(a,8580,"井上 治輝");
+}
+function on_CGID_9479( a )
+{
+ag(a,9479,"[DE-TEAM-LD]");
+ag(a,162,"今野 一重");
+ag(a,5126,"岸本 善斗");
+ag(a,2166,"関口 和男");
+ag(a,156,"奥野 賢二");
+ag(a,226,"秋山 淳");
+ag(a,2361,"小野木 祐典");
+ag(a,410,"井上 寛之");
+ag(a,2750,"窪田 光紘");
+}
+function on_CGID_9481( a )
+{
+ag(a,9481,"[DE-TEAM-SL]");
+ag(a,5130,"田中 佑昌");
+ag(a,5331,"松本 広志");
+ag(a,5272,"山内 隆");
+ag(a,176,"川村 洋介");
+ag(a,350,"山口 潤");
+ag(a,504,"増子 賢一");
+ag(a,188,"落合 俊章");
+ag(a,160,"岩﨑 浩平");
+}
+function on_CGID_624( a )
+{
+ag(a,624,"[総務経理部]");
+ag(a,3176,"安部 摩衣子");
+ag(a,3438,"島田 貴之");
+ag(a,8990,"金子 凌大");
+}
+function on_CGID_572( a )
+{
+ag(a,572,"[情報システム部]");
+ag(a,168,"小林 雅彦");
+ag(a,514,"佐藤 雄樹");
+ag(a,520,"山下 隆二");
+ag(a,9345,"児塔 脩平");
+ag(a,3243,"元気 太郎");
+}
+function on_CGID_10148( a )
+{
+ag(a,10148,"[経営会議]");
+ag(a,3226,"星野 孝");
+ag(a,242,"堀越 水軌");
+ag(a,2733,"保見 加織");
+ag(a,9128,"藤巻 靖裕");
+ag(a,10108,"山岸 義幸");
+ag(a,178,"大谷 孝治");
+ag(a,514,"佐藤 雄樹");
+ag(a,262,"門舛 敬一");
+ag(a,296,"新海 哲哉");
+ag(a,2359,"佐藤 貴之");
+ag(a,2367,"佐藤 寿彦");
+ag(a,7921,"佐藤 孝年");
+}
+function on_CGID_group( a )
+{
+ag(a,558,"[役員会]");
+ag(a,9451,"[管理本部]");
+ag(a,9733,"[HR部]");
+ag(a,9898,"[キャリアチェンジ室]");
+ag(a,9896,"[DX推進部]");
+ag(a,9124,"[経営企画室]");
+ag(a,4072,"[DE事業本部]");
+ag(a,5477,"[プロデュース部]");
+ag(a,6042,"[契約社員]");
+ag(a,8442,"[派遣社員]");
+ag(a,3673,"[開発サポート]");
+ag(a,3164,"[機材管理]");
+ag(a,3125,"[正社員]");
+ag(a,4712,"[PRJ-BN-W6]");
+ag(a,5669,"[PRJ-GK-FW]");
+ag(a,8934,"[PRJ-BR-PS]");
+ag(a,9355,"[PRJ-GK-SB]");
+ag(a,9433,"[PRJ-BN-NX]");
+ag(a,9635,"[PRJ-EB-DT]");
+ag(a,9701,"[PRJ-GF-VQ]");
+ag(a,9718,"[PRJ-GK-SY]");
+ag(a,9722,"[PRJ-GK-CG]");
+ag(a,9884,"[PRJ-DH-RW]");
+ag(a,9910,"[PRJ-AZ-PP]");
+ag(a,10349,"[PRJ-PO-NY]");
+ag(a,10404,"[PRJ-DK-MR]");
+ag(a,9370,"[TEAM-GD1]");
+ag(a,9372,"[TEAM-GD2]");
+ag(a,9374,"[TEAM-GD3]");
+ag(a,9376,"[TEAM-GD4]");
+ag(a,9382,"[TEAM-ART1]");
+ag(a,9384,"[TEAM-ART2]");
+ag(a,9390,"[TEAM-TEC1]");
+ag(a,9396,"[TEAM-SVR1]");
+ag(a,9479,"[DE-TEAM-LD]");
+ag(a,9481,"[DE-TEAM-SL]");
+ag(a,624,"[総務経理部]");
+ag(a,572,"[情報システム部]");
+ag(a,10148,"[経営会議]");
+}
+
+function ChangeCGID( form )
+{
+ var o;
+ var a = form.CID.options;
+ var option = a[a.length-1].cloneNode(true);
+ form.CID.innerHTML = "";
+ form.CID.appendChild(option);
+ a = form.CID.options;
+ var si = form.CGID.selectedIndex;
+ var nGID = form.CGID.options[si].value;
+ if( form.CGID.options[0].value == -2 ) form.CGID.remove(0);
+ if( nGID == 0 )
+ {
+ on_CGID_all(a);
+ }
+ else if( nGID == 558)
+ {
+ on_CGID_558(a);
+ }
+ else if( nGID == 9451)
+ {
+ on_CGID_9451(a);
+ }
+ else if( nGID == 9733)
+ {
+ on_CGID_9733(a);
+ }
+ else if( nGID == 9898)
+ {
+ on_CGID_9898(a);
+ }
+ else if( nGID == 9896)
+ {
+ on_CGID_9896(a);
+ }
+ else if( nGID == 9124)
+ {
+ on_CGID_9124(a);
+ }
+ else if( nGID == 4072)
+ {
+ on_CGID_4072(a);
+ }
+ else if( nGID == 5477)
+ {
+ on_CGID_5477(a);
+ }
+ else if( nGID == 6042)
+ {
+ on_CGID_6042(a);
+ }
+ else if( nGID == 8442)
+ {
+ on_CGID_8442(a);
+ }
+ else if( nGID == 3673)
+ {
+ on_CGID_3673(a);
+ }
+ else if( nGID == 3164)
+ {
+ on_CGID_3164(a);
+ }
+ else if( nGID == 3125)
+ {
+ on_CGID_3125(a);
+ }
+ else if( nGID == 4712)
+ {
+ on_CGID_4712(a);
+ }
+ else if( nGID == 5669)
+ {
+ on_CGID_5669(a);
+ }
+ else if( nGID == 8934)
+ {
+ on_CGID_8934(a);
+ }
+ else if( nGID == 9355)
+ {
+ on_CGID_9355(a);
+ }
+ else if( nGID == 9433)
+ {
+ on_CGID_9433(a);
+ }
+ else if( nGID == 9635)
+ {
+ on_CGID_9635(a);
+ }
+ else if( nGID == 9701)
+ {
+ on_CGID_9701(a);
+ }
+ else if( nGID == 9718)
+ {
+ on_CGID_9718(a);
+ }
+ else if( nGID == 9722)
+ {
+ on_CGID_9722(a);
+ }
+ else if( nGID == 9884)
+ {
+ on_CGID_9884(a);
+ }
+ else if( nGID == 9910)
+ {
+ on_CGID_9910(a);
+ }
+ else if( nGID == 10349)
+ {
+ on_CGID_10349(a);
+ }
+ else if( nGID == 10404)
+ {
+ on_CGID_10404(a);
+ }
+ else if( nGID == 9370)
+ {
+ on_CGID_9370(a);
+ }
+ else if( nGID == 9372)
+ {
+ on_CGID_9372(a);
+ }
+ else if( nGID == 9374)
+ {
+ on_CGID_9374(a);
+ }
+ else if( nGID == 9376)
+ {
+ on_CGID_9376(a);
+ }
+ else if( nGID == 9382)
+ {
+ on_CGID_9382(a);
+ }
+ else if( nGID == 9384)
+ {
+ on_CGID_9384(a);
+ }
+ else if( nGID == 9390)
+ {
+ on_CGID_9390(a);
+ }
+ else if( nGID == 9396)
+ {
+ on_CGID_9396(a);
+ }
+ else if( nGID == 9479)
+ {
+ on_CGID_9479(a);
+ }
+ else if( nGID == 9481)
+ {
+ on_CGID_9481(a);
+ }
+ else if( nGID == 624)
+ {
+ on_CGID_624(a);
+ }
+ else if( nGID == 572)
+ {
+ on_CGID_572(a);
+ }
+ else if( nGID == 10148)
+ {
+ on_CGID_10148(a);
+ }
+ else if( nGID == "g" )
+ {
+ on_CGID_group(a);
+ }
+ else
+ {
+ return false;
+ }
+ form.CID.focus();
+ return true;
+}
+function PreSubmitCGID( form )
+{
+ var u = form.sUID.options
+ var c = form.CID.options
+ for( i = 0 ; i < u.length - 1 ; i ++ ) { u[i].selected = true ; } u[i].selected = false;
+}
+//-->
+</script>
+ <tr valign="top">
+ <th rowspan="1" align="left" nowrap="">参加者</th>
+ <td colspan="2">
+<table class="formTable selectTable" role="presentation">
+ <tbody><tr>
+ <td>
+ <table role="presentation">
+ <tbody><tr>
+ <td class="vr_order" valign="center">
+<span class="vr_verticalButton"><img class="order-button" src="/cb1080/image/order_top16.png" align="absmiddle" id="sUID_order_top"></span>
+<span class="vr_verticalButton"><img class="order-button" src="/cb1080/image/order_up16.png" align="absmiddle" id="sUID_order_up"></span>
+<span class="vr_verticalButton"><img class="order-button" src="/cb1080/image/order_down16.png" align="absmiddle" id="sUID_order_down"></span>
+<span class="vr_verticalButton"><img class="order-button" src="/cb1080/image/order_bottom16.png" align="absmiddle" id="sUID_order_bottom"></span>
+<script language="JavaScript" type="text/javascript"><!--
+YAHOO.util.Event.onDOMReady( function(){
+new CB7.SelectOrder( "ScheduleEntry", "sUID", {
+ top: "sUID_order_top",
+ bottom: "sUID_order_bottom",
+ up: "sUID_order_up",
+ down: "sUID_order_down"
+} );
+} );
+//--></script>
+ </td>
+ <td valign="bottom">
+ <select class="" size="10" name="sUID" title="参加者" multiple="">
+<option value="2373" selected="">冨田 拓也</option>
+<option value="">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</option></select>
+ </td>
+ </tr>
+ </tbody></table>
+ </td>
+<td class="vr_selectButtons"><br>
+<span class="vr_verticalButton"><input class="vr_stdButton" type="button" value="← 追加" onclick="CB7.SelectOrder.AddSelectedItems( this.form, 'CID', 'sUID' )"></span><span class="vr_verticalButton"><input class="vr_stdButton" type="button" value="削除 →" onclick="CB7.SelectOrder.RemoveSelectedItems( this.form, 'sUID' )"></span> </td> 
+ <td>
+<div style="margin:4px 0px;">
+<script language="JavaScript" type="text/javascript"><!--
+function sUID_usersearch( form ) {
+var text = form.elements["sUIDUserSearchText"].value;
+if( !text ) return false;
+return CB7.SelectOrder.SearchUser( "ag.cgi?page=AjaxXHRScheduleEntryUserSearch", form, text, "CGID", "CID", "csrf_ticket=b6bfb18ecd707d0b0373b6531de768cd&license=Schedule" );
+}
+//--></script>
+<nobr>
+<input type="text" name="sUIDUserSearchText" value="" size="20" maxlength="100" onkeypress="return (function(e){e=(e||window.event); if(e.keyCode == 13){ sUID_usersearch((e.target||e.srcElement).form); e.returnValue=false; return false;} return true;})(event);">&nbsp;<input class="searchButton vr_stdButton" type="button" value="ユーザー検索" onclick="sUID_usersearch(this.form);"></nobr>
+</div>
+<div style="margin:4px 0px;">
+<select id="groupSelect" name="CGID" class=" select-gid" onchange="ChangeCGID( this.form )">
+<option value="0">(全員)</option>
+<option value="g">(組織一覧)</option>
+<option value="558">役員会</option>
+<option value="9451">管理本部</option>
+<option value="9733" selected="">HR部</option>
+<option value="9898">キャリアチェンジ室</option>
+<option value="9896">DX推進部</option>
+<option value="9124">経営企画室</option>
+<option value="4072">DE事業本部</option>
+<option value="5477">プロデュース部</option>
+<option value="6042">契約社員</option>
+<option value="8442">派遣社員</option>
+<option value="3673">開発サポート</option>
+<option value="3164">機材管理</option>
+<option value="3125">正社員</option>
+<option value="4712">PRJ-BN-W6</option>
+<option value="5669">PRJ-GK-FW</option>
+<option value="8934">PRJ-BR-PS</option>
+<option value="9355">PRJ-GK-SB</option>
+<option value="9433">PRJ-BN-NX</option>
+<option value="9635">PRJ-EB-DT</option>
+<option value="9701">PRJ-GF-VQ</option>
+<option value="9718">PRJ-GK-SY</option>
+<option value="9722">PRJ-GK-CG</option>
+<option value="9884">PRJ-DH-RW</option>
+<option value="9910">PRJ-AZ-PP</option>
+<option value="10349">PRJ-PO-NY</option>
+<option value="10404">PRJ-DK-MR</option>
+<option value="9370">TEAM-GD1</option>
+<option value="9372">TEAM-GD2</option>
+<option value="9374">TEAM-GD3</option>
+<option value="9376">TEAM-GD4</option>
+<option value="9382">TEAM-ART1</option>
+<option value="9384">TEAM-ART2</option>
+<option value="9390">TEAM-TEC1</option>
+<option value="9396">TEAM-SVR1</option>
+<option value="9479">DE-TEAM-LD</option>
+<option value="9481">DE-TEAM-SL</option>
+<option value="624">総務経理部</option>
+<option value="572">情報システム部</option>
+<option value="10148">経営会議</option>
+</select>
+</div>
+<select name="CID" size="6" multiple="">
+<option value="9733">[HR部]</option>
+<option value="178">大谷 孝治</option>
+<option value="5860">月岡 綾乃</option>
+<option value="2373">冨田 拓也</option>
+<option value="3333">三宅 信太郎</option>
+<option value="8520">梅林 里奈</option>
+<option value="">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</option></select><br></td>
+ </tr>
+ </tbody></table>
+ </td>
+ </tr>
+<script language="JavaScript" type="text/javascript">
+<!--
+function on_FGID_all( a )
+{
+au(a,8424,"【来客可】12階会議室(中)");
+au(a,9329,"【来客可】\u002f12階会議室(小)");
+au(a,8426,"打合せスペース（丸テーブル）");
+au(a,10221,"打合せスペースA（4名席）");
+au(a,10222,"打合せスペースB（4名席）");
+au(a,10220,"打合せスペースC（9名席）");
+au(a,9340,"壱\u002fブース1(奥)");
+au(a,9341,"弐\u002fブース2(手前)");
+au(a,9437,"Zoom会議室1");
+au(a,9438,"Zoom会議室2");
+au(a,9439,"Zoom会議室3");
+au(a,9440,"Zoom会議室4");
+au(a,9441,"Zoom会議室5");
+au(a,10226,"KDX会議室");
+au(a,10227,"KDXワークブース");
+}
+function on_FGID_675( a )
+{
+au(a,8424,"【来客可】12階会議室(中)");
+au(a,8426,"打合せスペース（丸テーブル）");
+au(a,9329,"【来客可】\u002f12階会議室(小)");
+au(a,9340,"壱\u002fブース1(奥)");
+au(a,9341,"弐\u002fブース2(手前)");
+au(a,10220,"打合せスペースC（9名席）");
+au(a,10221,"打合せスペースA（4名席）");
+au(a,10222,"打合せスペースB（4名席）");
+au(a,10226,"KDX会議室");
+au(a,10227,"KDXワークブース");
+}
+function on_FGID_9435( a )
+{
+au(a,9437,"Zoom会議室1");
+au(a,9438,"Zoom会議室2");
+au(a,9439,"Zoom会議室3");
+au(a,9440,"Zoom会議室4");
+au(a,9441,"Zoom会議室5");
+}
+
+function ChangeFGID( form )
+{
+ var o;
+ var a = form.FCID.options;
+ var option = a[a.length-1].cloneNode(true);
+ form.FCID.innerHTML = "";
+ form.FCID.appendChild(option);
+ a = form.FCID.options;
+ var si = form.FGID.selectedIndex;
+ var nGID = form.FGID.options[si].value;
+ if( form.FGID.options[0].value == -2 ) form.FGID.remove(0);
+ if( nGID == 0 )
+ {
+ on_FGID_all(a);
+ }
+ else if( nGID == 675)
+ {
+ on_FGID_675(a);
+ }
+ else if( nGID == 9435)
+ {
+ on_FGID_9435(a);
+ }
+ else
+ {
+ return false;
+ }
+ form.FCID.focus();
+ return true;
+}
+function PreSubmitFGID( form )
+{
+ var u = form.sFID.options
+ var c = form.FCID.options
+ for( i = 0 ; i < u.length - 1 ; i ++ ) { u[i].selected = true ; } u[i].selected = false;
+}
+//-->
+</script>
+ <tr valign="top">
+ <th rowspan="1" align="left" nowrap="">施設</th>
+ <td colspan="2">
+<table class="formTable selectTable" role="presentation">
+ <tbody><tr>
+ <td>
+ <table role="presentation">
+ <tbody><tr>
+ <td class="vr_order" valign="center">
+<span class="vr_verticalButton"><img class="order-button" src="/cb1080/image/order_up16.png" align="absmiddle" id="sFID_order_up"></span>
+<span class="vr_verticalButton"><img class="order-button" src="/cb1080/image/order_down16.png" align="absmiddle" id="sFID_order_down"></span>
+<script language="JavaScript" type="text/javascript"><!--
+YAHOO.util.Event.onDOMReady( function(){
+new CB7.SelectOrder( "ScheduleEntry", "sFID", {
+ up: "sFID_order_up",
+ down: "sFID_order_down"
+} );
+} );
+//--></script>
+ </td>
+ <td valign="bottom">
+ <select class="" size="6" name="sFID" title="施設" multiple="">
+<option value="">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</option></select>
+ </td>
+ </tr>
+ </tbody></table>
+ </td>
+<td class="vr_selectButtons"><br>
+<span class="vr_verticalButton"><input class="vr_stdButton" type="button" value="← 追加" onclick="CB7.SelectOrder.AddSelectedItems( this.form, 'FCID', 'sFID' )"></span><span class="vr_verticalButton"><input class="vr_stdButton" type="button" value="削除 →" onclick="CB7.SelectOrder.RemoveSelectedItems( this.form, 'sFID' )"></span> </td> 
+ <td>
+<div style="margin:4px 0px;">
+<select id="groupSelect" name="FGID" onchange="ChangeFGID( this.form )">
+<option value="0">(全施設)</option>
+<option value="675" selected="">会議室等</option>
+<option value="9435">Zoom会議室</option>
+</select>
+</div>
+<select name="FCID" size="4" multiple="">
+<option value="8424">【来客可】12階会議室(中)</option>
+<option value="8426">打合せスペース（丸テーブル）</option>
+<option value="9329">【来客可】/12階会議室(小)</option>
+<option value="9340">壱/ブース1(奥)</option>
+<option value="9341">弐/ブース2(手前)</option>
+<option value="10220">打合せスペースC（9名席）</option>
+<option value="10221">打合せスペースA（4名席）</option>
+<option value="10222">打合せスペースB（4名席）</option>
+<option value="10226">KDX会議室</option>
+<option value="10227">KDXワークブース</option>
+<option value="">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</option></select><br></td>
+ </tr>
+ <tr>
+ <td colspan="2"></td>
+ <td>
+ <input type="hidden" name="OpenPage" value="ScheduleEntry">
+ <input type="hidden" name="OpenForm" value="ScheduleEntry">
+ <script type="text/javascript">
+ <!--
+ function ShowFacilitiesInfo() {
+ window.open("ag.cgi?page=AGBlank", "FacilitiesInfo", "height=600,width=800,scrollbars=1,location=0,resizable=1");
+ var form = $("form[name='ScheduleEntry']");
+
+ var requireParamNames = ["OpenForm", "OpenPage", "rall"];
+ CB7.Util.each(requireParamNames, function(paramName) {
+ if (form.find("input[name="+paramName+"]").size() === 0) {
+ form.append($("<input type=\"hidden\" name=\"" + paramName + "\" />"));
+ }
+ });
+
+ form.attr("target", "FacilitiesInfo");
+ form.find("input[name=page]").val("ScheduleFacilitiesInfo");
+ form.find("input[name=OpenPage]").val("ScheduleEntry");
+ form.find("input[name=OpenForm]").val("ScheduleEntry");
+ form.find("input[name=rall]").val("1");
+ 
+ form.submit();
+ }
+ -->
+ </script>
+ <a class="formSubmenu" href="javascript:void(0)" onclick="ShowFacilitiesInfo();"> 施設情報の表示 </a> </td>
+ </tr>
+ </tbody></table>
+ </td>
+ </tr>
+<script language="JavaScript" type="text/javascript">
+<!--
+function ShowConfirmView( form )
+{
+
+ if( CheckDate( form.elements["SetDate.Year"].selectedIndex+2001,
+ form.elements["SetDate.Month"].selectedIndex+1,
+ form.elements["SetDate.Day"].selectedIndex+1 ) == false )
+ return false;
+
+ var bUserSelect = false;
+ var bFacilitySelect = false;
+
+ var u = form.sUID.options;
+ for( i = 0 ; i < u.length - 1 ; ++i ) { u[i].selected = true ; bUserSelect = true;} u[i].selected = false;
+ var cu = form.CID.options;
+ for( i = 0 ; i < cu.length - 1 ; ++ i ) { if( cu[i].selected == true ) {bUserSelect = true; break;} }
+ cu[cu.length-1].selected = false;
+ var f = form.sFID.options;
+ for( i = 0 ; i < f.length - 1 ; i ++ ) { f[i].selected = true ; bFacilitySelect = true; } f[i].selected = false;
+ var fc = form.FCID.options;
+ for( i = 0 ; i < fc.length - 1 ; ++ i ) { if( fc[i].selected == true ) {bFacilitySelect = true; break;} }
+ fc[fc.length-1].selected = false;
+
+ if( ! bUserSelect && ! bFacilitySelect  )
+ {
+ alert( "メンバーが選択されていません。" );
+ return false;
+ }
+
+ confirmWin = window.open("ag.cgi?page=AGBlank","Confirm","height=600,width=800,scrollbars=1,location=0,resizable=1");
+ form.target = "Confirm";
+ form.page.value = "ScheduleEmpty";
+ form.r.value = "Calendar";
+
+ return true;
+}
+
+function SetAction( form )
+{
+ form.target = "_self";
+ form.Page.value = "ScheduleEntry";
+ form.r.value = "";
+}
+
+function CheckMembers( form )
+{
+
+ return true;
+}
+function ShowMyGroupAdd( form )
+{
+ if( form.CGID )
+ {
+ PreSubmitCGID(form);
+ }
+ if( form.FGID )
+ {
+ PreSubmitFGID(form);
+ }
+ confirmWin = window.open("ag.cgi?page=AGBlank","Confirm","height=600,width=800,scrollbars=1,location=0,resizable=1");
+ form.target = "Confirm";
+ form.page.value = "PersonalMyGroupAddPopup";
+ form.r.value = "Calendar";
+
+ return true;
+}
+//-->
+</script>
+<input type="hidden" name="OpenPage" value="ScheduleEntry">
+<script language="JavaScript" type="text/javascript">
+<!--
+document.writeln('<input type="hidden" name="OpenForm" value="' + document.forms["ScheduleEntry"].name + '">');
+//-->
+</script><input type="hidden" name="OpenForm" value="ScheduleEntry">
+
+ <tr valign="top">
+ <th align="left" nowrap="" rowspan="1"><br></th>
+ <td>
+ <input class="vr_stdButton" style="width:13em;" type="submit" value="空き時間を確認する" onclick="return ShowConfirmView( this.form );">&nbsp;<span id="tt1" style="cursor:help;"><img src="/cb1080/image/help16.png" align="absmiddle"></span>
+<script language="JavaScript" type="text/javascript">
+<!--
+YAHOO.util.Event.onAvailable( "tt1" , function(){
+ var tt1 = new YAHOO.widget.Tooltip( "TooltipID1", { context:'tt1', text:'選択している参加者や施設の空き時間を確認します。<br>左右どちらのリストボックスで選択しても確認できます。' });
+});
+//-->
+</script>
+ </td>
+ </tr>
+<script language="JavaScript" type="text/javascript">
+<!--
+function RemoveFile( form )
+{
+ var f = form.File.options;
+ li = f.length - 1;
+ for( i = 0 ; i < li ; i ++ ) { if( f[i].selected ) { f[i] = null; li -=1; i-=1; } }
+}
+//-->
+</script>
+ <tr valign="top">
+ <th rowspan="1" align="left" nowrap="">ファイル</th>
+ <td>
+ <div id="WarningAttach" style="display:none">複数の日付を指定する場合は、ファイルを添付できません。</div>
+ <div id="FileAttachArea">
+<table style="display:none;" width="100%">
+ <tbody id="js-template-uploadedfile">
+ <tr id="progressRow%ID_SUFFIX%">
+ <td><span id="progressTitle%ID_SUFFIX%" class="break-text">%FILE_NAME%</span><span>&nbsp;</span><span>%FILE_SIZE%</span></td>
+ <td nowrap=""><a id="progressCancel%ID_SUFFIX%" href="javascript:void(0);" class="progressCancel">キャンセルする</a><a id="progressDelete%ID_SUFFIX%" style="display:none" href="javascript:void(0);" class="progressDelete">削除する</a></td>
+ <td><progress id="progress%ID_SUFFIX%" max="99"></progress></td>
+ <td nowrap=""><span id="progressDesc%ID_SUFFIX%"></span></td>
+ </tr>
+ </tbody>
+</table>
+<table style="display:none;" width="100%">
+ <tbody id="js-template-attachedfile">
+ <tr id="progressRow%ID_SUFFIX%">
+ <td><span class="break-text">%OPTION_HTML%</span></td>
+ <td nowrap=""><a id="progressDelete%ID_SUFFIX%" href="javascript:void(0);" class="progressDelete">削除する</a></td>
+ </tr>
+ </tbody>
+</table>
+<table class="vr_fileAttachForm" id="fileAttachForm1" role="presentation">
+ <tbody><tr class="unavailableHtml5FileDnD" style="display: none;">
+ <td rowspan="2" nowrap=""><select id="legacyFileSelect1" name="File" size="4" multiple="">
+<option value="">　　　　　　　　　　　　　　　　　　　　　　　　　</option></select></td>
+ <td>
+ <input class="vr_stdButton" id="addFile1" type="button" value="追加する…">
+ <script>
+ $(function() {
+ var dialog = new CB7.Form.OpenFileDialog("ScheduleEntry", "File", "", false);
+ $("#addFile1").click(function() {
+ dialog.open();
+ });
+ });
+ </script>
+ </td>
+ </tr>
+ <tr class="unavailableHtml5FileDnD" style="display: none;">
+ <td nowrap=""><input class="vr_stdButton" type="button" value="削除する" onclick="RemoveFile( this.form )"></td>
+ </tr>
+<tr class="js-availableHtml5FileDnD">
+ <td>
+ <div id="dropArea1" dropzone="file" class="fileformDropArea" style="display: none;"><span class="fileformDropAreaDesc">ファイルをここにドラッグアンドドロップします。</span></div>
+ <div id="fileDnD1">
+ <div class="fileform">
+ <div id="inputArea1">
+ <span class="vr_stdButton" style="cursor: pointer;">ファイルを選択する</span>
+ <span class="fileformDesc">（ドラッグアンドドロップでも複数のファイルを添付できます。）</span>
+ <div class="fileformInput" id="fileInputContainer1">
+ <input type="file" id="files1" name="files[]" size="0" multiple="">
+ </div>
+ </div>
+<table class="fileformProgress" role="presentation">
+ <tbody id="progressContainer1"></tbody>
+</table>
+ </div>
+ </div>
+ <script>
+ $(function () {
+ var options = {
+ sfx: "1",
+ formFileArea: $("#fileAttachForm1"),
+ formName: "File",
+ formKey: "b6bfb18ecd707d0b0373b6531de768cd",
+ formFormName: "ScheduleEntry",
+ formApp: "",
+ formForceAttach: false,
+ formHideMimeType : ""
+ };
+ var mif = new CB7.Form.MultiInputFile(options);
+ mif.execute();
+ });
+ </script>
+ </td>
+</tr>
+</tbody></table>
+ </div>
+ </td>
+ </tr>
+<script>
+function PreSubmitFile( form )
+{
+ var f = form.File.options;
+ for( i = 0 ; i < f.length - 1 ; i ++ )
+ {
+ f[i].selected = true ;
+ }
+}
+</script>
+ <tr valign="top">
+ <th rowspan="1" align="left" nowrap="">アンケート</th>
+ <td>
+<link rel="stylesheet" type="text/css" href="/cb1080/html/enquete.css?_v=1086120220502162043.css">
+ <div id="js-enquete">
+ <input type="hidden" name="DeleteQuestions" value="0">
+ <div class="question-wrapper"></div>
+ <input type="button" id="js-add-question" class="vr_stdButton btn-add-question" value="アンケートを作成する">
+ </div>
+<div id="js-template-question" style="display: none;">
+ <div class="question-container">
+ <ul class="option-wrapper"></ul>
+ <a class="js-add-option btn-add-option formSubmenu" href="javascript: void(0)">＋選択肢を追加する</a>
+ </div>
+ <a class="js-delete-question btn-delete-question formSubmenu" href="javascript: void(0)"><img src="/cb1080/image/delete16.png" align="absmiddle">削除する</a>
+</div>
+<li id="js-template-option" style="display: none;"><input type="text" class="js-option-text option-text" maxlength="100" placeholder="回答の選択肢を入力"><a class="js-toggle-calendar-picker btn-toggle-calendar-picker"><img src="/cb1080/image/calendarPicker16.png" align="absmiddle"></a>
+<iframe class="calendar-picker js-calendar-picker displayNone" src="ag.cgi?page=PopupCalendar&amp;notimecard=1&amp;enquete=1" frameborder="no" scrolling="no" style="z-index:100"></iframe><a class="js-delete-option btn-delete-option formSubmenu" href="javascript: void(0)">×</a></li>
+<script type="text/javascript" charset="UTF-8" src="/cb1080/html/enquete.js?_v=1086120220502162043.js"></script>
+ <script> $(function(){
+ var settings = {};
+ var readonlyOptions = [];
+ var modifiableOptions = [];
+ settings.question = {
+ "readonlyOptions": readonlyOptions,
+ "modifiableOptions": modifiableOptions
+ };
+ CB7.Enquete.Init(settings);
+ }); </script>
+ </td>
+ </tr>
+ <tr>
+ <th nowrap="">公開/非公開</th>
+ <td nowrap="">
+<input id="0" type="radio" name="Private" value="" checked=""><label for="0" onmouseover="this.style.color=&quot;#ff0000&quot;" onmouseout="this.style.color=&quot;&quot;">公開</label>
+&nbsp;
+<input id="1" type="radio" name="Private" value="1"><label for="1" onmouseover="this.style.color=&quot;#ff0000&quot;" onmouseout="this.style.color=&quot;&quot;">非公開</label>
+ </td>
+</tr>
+ <tr>
+ <th rowspan="1" align="left" nowrap=""></th>
+ <td>
+<input id="SimpleReplyEnable" type="checkbox" name="SimpleReplyEnable" checked="" value="1"><label for="SimpleReplyEnable" id="SimpleReplyEnableLabel" onmouseover="this.style.color=&quot;#ff0000&quot;" onmouseout="this.style.color=&quot;&quot;">リアクションを許可する</label>
+ <br>
+ &nbsp;┗
+ <input type="hidden" name="SimpleReplyConfig" value="1">
+ <select name="SimpleReplyNameSelect" id="SimpleReplyNameSelect">
+ <option value="いいね！">いいね！</option>
+ <option value="確認しました">確認しました</option>
+ <option value="了解です">了解です</option>
+ <option value="よろしくお願いします">よろしくお願いします</option>
+ <option value="">(直接入力)</option>
+ </select>
+ <span>
+ <input type="text" name="SimpleReplyNameDirect" id="SimpleReplyNameDirect" style="display:none" size="20" maxlength="10">
+ </span>
+ <script>
+ (function () {
+ // 文言設定パーツの初期化
+ var simpleReplyNameSelect = $('#SimpleReplyNameSelect');
+ var simpleReplyNameDirect = $('#SimpleReplyNameDirect');
+ var confName = 'いいね！';
+ if (confName !== '') {
+ var isInOptions = false;
+ $('#SimpleReplyNameSelect > option').each(function () {
+ if (this.value === confName) {
+ simpleReplyNameSelect.val(this.value);
+ isInOptions = true;
+ return false;
+ }
+ });
+ if (!isInOptions) {
+ simpleReplyNameSelect.val('');
+ simpleReplyNameDirect.val(htmlDecode(confName));
+ simpleReplyNameDirect.show();
+ }
+ }
+ })();
+ </script>
+ <script>
+ CB7.Form.SimpleReply('');
+ </script>
+ </td>
+ </tr>
+</tbody></table>
+</div>
+ </div>
+<div class="vr_formCommitWrapper">
+<p class="vr_formCommit js-resize-width-window" style="width: 1073px;">
+<input type="submit" class="vr_hotButton" name="Entry" value="登録する" onclick="PreSubmitFile(this.form); PreSubmitCGID( this.form );PreSubmitFGID( this.form );return CheckScheduleDataForm( this.form );">
+<input type="button" class="vr_stdButton" name="Cancel" value="キャンセルする" onclick="location.href='ag.cgi?page=AGIndex'">
+</p>
+</div>
+ </div>
+ </td>
+ </tr>
+</tbody></table>
+</td></tr></tbody></table>
+</div>
+</form>
+<div class="vr_contentBottom clearfix">
+<script language="javascript" type="text/javascript">
+<!--
+ShowBackLink("", "", true, "/cb1080/image/backlink16.png", "", false);
+//-->
+</script><div class="backlink"><a href="ag.cgi?page=AGIndex&amp;cp=&amp;sp=" onclick="undefined"><img src="/cb1080/image/backlink16.png" align="absmiddle" border="0">トップページへ</a></div>
+
+<a class="vr_scrollUp" href="javascript:void(0);" onclick="$('html, body').animate({scrollTop:0}, 500); return false;">▲</a>
+</div>
+</div></div>
+ <div class="footbar">
+<div class="copyright">サイボウズ Office Version 10.8.6 20220502162043</div></div></div>
+
+</body></html>
