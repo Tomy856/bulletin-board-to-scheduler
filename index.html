@@ -1,0 +1,652 @@
+﻿<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>掲示板取得.bat ? 自動化の記録</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --border: #1e1e2e;
+    --accent: #00ff9d;
+    --accent2: #ff6b35;
+    --text: #e8e8f0;
+    --muted: #6b6b7e;
+    --mono: 'Share Tech Mono', monospace;
+    --serif: 'Noto Serif JP', serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--serif);
+    overflow-x: hidden;
+  }
+
+  /* ノイズテクスチャ */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 1000;
+    opacity: 0.4;
+  }
+
+  /* ヒーロー */
+  .hero {
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    position: relative;
+    padding: 4rem 2rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .hero-grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 60px 60px;
+    mask-image: radial-gradient(ellipse 80% 60% at 50% 50%, black 30%, transparent 100%);
+  }
+
+  .hero-glow {
+    position: absolute;
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(0,255,157,0.06) 0%, transparent 70%);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    animation: pulse 4s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+    50% { transform: translate(-50%, -50%) scale(1.1); opacity: 0.6; }
+  }
+
+  .hero-content {
+    position: relative;
+    text-align: center;
+    max-width: 800px;
+  }
+
+  .hero-label {
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    color: var(--accent);
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    margin-bottom: 2rem;
+    opacity: 0;
+    animation: fadeUp 0.8s 0.2s forwards;
+  }
+
+  .hero-title {
+    font-size: clamp(3rem, 10vw, 7rem);
+    font-weight: 900;
+    line-height: 0.95;
+    letter-spacing: -0.03em;
+    margin-bottom: 2rem;
+    opacity: 0;
+    animation: fadeUp 0.8s 0.4s forwards;
+  }
+
+  .hero-title .accent { color: var(--accent); }
+  .hero-title .dim { color: var(--muted); }
+
+  .hero-desc {
+    font-size: 1.1rem;
+    line-height: 1.8;
+    color: var(--muted);
+    max-width: 540px;
+    margin: 0 auto 3rem;
+    opacity: 0;
+    animation: fadeUp 0.8s 0.6s forwards;
+  }
+
+  .hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    color: var(--accent);
+    border: 1px solid rgba(0,255,157,0.3);
+    padding: 0.5rem 1.2rem;
+    border-radius: 2px;
+    opacity: 0;
+    animation: fadeUp 0.8s 0.8s forwards;
+  }
+
+  .dot {
+    width: 6px; height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+    animation: blink 1.5s ease-in-out infinite;
+  }
+
+  @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* セクション共通 */
+  section {
+    padding: 6rem 2rem;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .section-label {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    color: var(--accent);
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+  }
+
+  .section-title {
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    font-weight: 900;
+    line-height: 1.1;
+    margin-bottom: 1rem;
+  }
+
+  .section-sub {
+    color: var(--muted);
+    font-size: 1rem;
+    line-height: 1.7;
+    max-width: 600px;
+    margin-bottom: 4rem;
+  }
+
+  /* Before/After */
+  .compare {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 1.5rem;
+    align-items: start;
+  }
+
+  .compare-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 2rem;
+    border-radius: 4px;
+    position: relative;
+  }
+
+  .compare-card.before { border-color: rgba(255,107,53,0.3); }
+  .compare-card.after { border-color: rgba(0,255,157,0.3); }
+
+  .compare-tag {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    padding: 0.3rem 0.8rem;
+    border-radius: 2px;
+    margin-bottom: 1.5rem;
+    display: inline-block;
+  }
+
+  .before .compare-tag { background: rgba(255,107,53,0.15); color: var(--accent2); }
+  .after .compare-tag { background: rgba(0,255,157,0.15); color: var(--accent); }
+
+  .compare-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.8rem;
+    margin-bottom: 1.2rem;
+    font-size: 0.9rem;
+    line-height: 1.5;
+  }
+
+  .compare-item .icon {
+    flex-shrink: 0;
+    margin-top: 2px;
+    font-size: 1.1rem;
+  }
+
+  .compare-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    color: var(--muted);
+    padding-top: 4rem;
+  }
+
+  /* フロー */
+  .flow {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .flow-item {
+    display: grid;
+    grid-template-columns: 80px 1fr;
+    gap: 2rem;
+    position: relative;
+    padding-bottom: 3rem;
+    opacity: 0;
+    transform: translateX(-20px);
+    transition: opacity 0.6s, transform 0.6s;
+  }
+
+  .flow-item.visible { opacity: 1; transform: translateX(0); }
+
+  .flow-item:not(:last-child)::before {
+    content: '';
+    position: absolute;
+    left: 39px;
+    top: 56px;
+    bottom: 0;
+    width: 2px;
+    background: linear-gradient(to bottom, var(--accent), transparent);
+    opacity: 0.3;
+  }
+
+  .flow-num {
+    width: 56px;
+    height: 56px;
+    border: 1px solid rgba(0,255,157,0.3);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--mono);
+    font-size: 1.1rem;
+    color: var(--accent);
+    flex-shrink: 0;
+    background: rgba(0,255,157,0.05);
+  }
+
+  .flow-body { padding-top: 0.8rem; }
+  .flow-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 0.5rem; }
+  .flow-desc { color: var(--muted); font-size: 0.9rem; line-height: 1.7; }
+
+  .flow-code {
+    margin-top: 0.8rem;
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    color: var(--accent);
+    background: rgba(0,255,157,0.05);
+    border: 1px solid rgba(0,255,157,0.15);
+    padding: 0.6rem 1rem;
+    border-radius: 2px;
+    display: inline-block;
+  }
+
+  /* スタッツ */
+  .stats-section {
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    padding: 5rem 2rem;
+    background: var(--surface);
+  }
+
+  .stats-grid {
+    max-width: 1100px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 3rem;
+    text-align: center;
+  }
+
+  .stat-num {
+    font-family: var(--mono);
+    font-size: 3.5rem;
+    color: var(--accent);
+    line-height: 1;
+    margin-bottom: 0.5rem;
+  }
+
+  .stat-unit {
+    font-size: 1.2rem;
+    color: var(--muted);
+  }
+
+  .stat-label {
+    font-size: 0.85rem;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+  }
+
+  /* スケジュール */
+  .schedule-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+  }
+
+  .schedule-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 2rem;
+    border-radius: 4px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.3s, transform 0.3s;
+  }
+
+  .schedule-card:hover {
+    border-color: rgba(0,255,157,0.4);
+    transform: translateY(-4px);
+  }
+
+  .schedule-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .schedule-card:hover::before { opacity: 1; }
+
+  .schedule-time {
+    font-family: var(--mono);
+    font-size: 2.5rem;
+    color: var(--accent);
+    margin-bottom: 0.5rem;
+  }
+
+  .schedule-reason {
+    font-size: 0.85rem;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  /* 対応フォーマット */
+  .formats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .format-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 1.5rem;
+    border-radius: 4px;
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    line-height: 2;
+    color: #8888aa;
+    transition: border-color 0.3s;
+  }
+
+  .format-card:hover { border-color: rgba(0,255,157,0.3); }
+  .format-card .hl { color: var(--accent); }
+  .format-card .hl2 { color: var(--accent2); }
+  .format-card .label {
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+    display: block;
+  }
+
+  /* フッター */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 3rem 2rem;
+    text-align: center;
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    color: var(--muted);
+  }
+
+  footer .accent { color: var(--accent); }
+
+  /* レスポンシブ */
+  @media (max-width: 700px) {
+    .compare { grid-template-columns: 1fr; }
+    .compare-arrow { padding-top: 0; transform: rotate(90deg); }
+    .schedule-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-grid"></div>
+  <div class="hero-glow"></div>
+  <div class="hero-content">
+    <p class="hero-label">Automation Tool ? Cybozu Office 10</p>
+    <h1 class="hero-title">
+      <span class="dim">掲示板</span><br>
+      <span class="accent">取得</span><span class="dim">.bat</span>
+    </h1>
+    <p class="hero-desc">
+      毎朝の休暇申請チェックを、ダブルクリック一発で完結させるために生まれた自動化スクリプト。
+      掲示板の書き込みを読み、スケジュールを確認し、登録漏れを検出する。
+    </p>
+    <span class="hero-badge">
+      <span class="dot"></span>
+      毎日 11:00 / 14:30 に自動実行中
+    </span>
+  </div>
+</div>
+
+<section>
+  <p class="section-label">// 課題と解決</p>
+  <h2 class="section-title">何が変わったか</h2>
+  <p class="section-sub">毎朝の定型業務を自動化することで、人的ミスと手間を同時に排除する。</p>
+
+  <div class="compare">
+    <div class="compare-card before">
+      <span class="compare-tag">BEFORE</span>
+      <div class="compare-item"><span class="icon">📋</span><span>掲示板を手動で開いて書き込みをひとつひとつ確認</span></div>
+      <div class="compare-item"><span class="icon">🔍</span><span>名前からサイボウズのユーザーを手動検索</span></div>
+      <div class="compare-item"><span class="icon">👁️</span><span>スケジュール画面を開いて登録済みか目視確認</span></div>
+      <div class="compare-item"><span class="icon">⚠️</span><span>確認漏れや二重登録が発生するリスク</span></div>
+      <div class="compare-item"><span class="icon">⏳</span><span>毎日数分〜十数分の繰り返し作業</span></div>
+    </div>
+
+    <div class="compare-arrow">→</div>
+
+    <div class="compare-card after">
+      <span class="compare-tag">AFTER</span>
+      <div class="compare-item"><span class="icon">🤖</span><span>自動で掲示板を巡回、当日書き込みだけ抽出</span></div>
+      <div class="compare-item"><span class="icon">⚡</span><span>名前・時間・休暇種別を自動パース</span></div>
+      <div class="compare-item"><span class="icon">✅</span><span>登録済みは自動スキップ、未登録のみ検出</span></div>
+      <div class="compare-item"><span class="icon">🛡️</span><span>登録漏れゼロ・二重登録ゼロを保証</span></div>
+      <div class="compare-item"><span class="icon">✨</span><span>作業時間ほぼゼロ、PC起動中は全自動</span></div>
+    </div>
+  </div>
+</section>
+
+<div class="stats-section">
+  <div class="stats-grid">
+    <div>
+      <div class="stat-num">3<span class="stat-unit">回</span></div>
+      <div class="stat-label">毎日の自動実行回数</div>
+    </div>
+    <div>
+      <div class="stat-num">0<span class="stat-unit">秒</span></div>
+      <div class="stat-label">必要な手動操作時間</div>
+    </div>
+    <div>
+      <div class="stat-num">4<span class="stat-unit">種</span></div>
+      <div class="stat-label">対応する書き込みフォーマット</div>
+    </div>
+    <div>
+      <div class="stat-num">100<span class="stat-unit">%</span></div>
+      <div class="stat-label">登録漏れ検出率</div>
+    </div>
+  </div>
+</div>
+
+<section>
+  <p class="section-label">// 処理の流れ</p>
+  <h2 class="section-title">何をやっているか</h2>
+  <p class="section-sub">Playwright によるブラウザ自動操作で、人間が行う一連の手順を完全再現する。</p>
+
+  <div class="flow">
+    <div class="flow-item">
+      <div class="flow-num">01</div>
+      <div class="flow-body">
+        <div class="flow-title">ブラウザ起動 & ログイン</div>
+        <div class="flow-desc">Chromiumをデバッグポート経由で起動し、サイボウズOfficeに自動ログイン。通常のChromeとは独立して動作するため、業務中の操作に影響しない。</div>
+        <span class="flow-code">chromium --remote-debugging-port=19223</span>
+      </div>
+    </div>
+    <div class="flow-item">
+      <div class="flow-num">02</div>
+      <div class="flow-body">
+        <div class="flow-title">掲示板スクレイピング</div>
+        <div class="flow-desc">指定の掲示板URLへ移動し、<code style="color:var(--accent)">div.vr_followWrapper</code> を単位として書き込みを取得。日付ヘッダー（span.vr_followTime）で当日分だけをフィルタリング。</div>
+      </div>
+    </div>
+    <div class="flow-item">
+      <div class="flow-num">03</div>
+      <div class="flow-body">
+        <div class="flow-title">書き込みのパース</div>
+        <div class="flow-desc">全角・半角、丸数字・読点区切り・ラベル付きなど多様なフォーマットに対応。名前・時間・休暇種別を自動抽出。「佐藤 太郎」のようなスペースなし表記も正しく処理。</div>
+        <span class="flow-code">①②③ / 1. 2. 3. / 1、2、3、/ １、２、３、</span>
+      </div>
+    </div>
+    <div class="flow-item">
+      <div class="flow-num">04</div>
+      <div class="flow-body">
+        <div class="flow-title">ユーザー検索</div>
+        <div class="flow-desc">スケジュール画面でユーザーを検索。フルネーム→苗字→名前の順に試行し、1件に絞れるまで自動リトライ。異体字（斉藤/齊藤）にも対応。</div>
+        <span class="flow-code">田中 太郎 → 田中 → 太郎 の順で試行</span>
+      </div>
+    </div>
+    <div class="flow-item">
+      <div class="flow-num">05</div>
+      <div class="flow-body">
+        <div class="flow-title">登録済みチェック & サマリー出力</div>
+        <div class="flow-desc">今日のスケジュール欄に :休み / :午前半休 / :午後半休 が既にあればスキップ。登録が必要な人だけを「登録対象」として出力する。</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section style="padding-top: 0;">
+  <p class="section-label">// 書き込みフォーマット</p>
+  <h2 class="section-title">どんな書き方にも対応</h2>
+  <p class="section-sub">書く人によって形式がバラバラでも、パーサーが自動判別して正しく読み取る。</p>
+
+  <div class="formats">
+    <div class="format-card">
+      <span class="label">丸数字形式</span>
+      <span class="hl">②</span>佐藤 太郎<br>
+      <span class="hl">⑤</span>--:--<br>
+      <span class="hl">⑥</span>全日休暇
+    </div>
+    <div class="format-card">
+      <span class="label">番号ドット形式</span>
+      <span class="hl2">2.</span>鈴木 一郎<br>
+      <span class="hl2">5.</span>--:--<br>
+      <span class="hl2">6.</span>全休
+    </div>
+    <div class="format-card">
+      <span class="label">全角読点形式（空行あり）</span>
+      <span class="hl">１、</span>999<br>
+      <span class="hl">２、</span>高橋 二郎<br>
+      <span class="hl">５、</span>13:00<br>
+      <span class="hl">６、</span>午前半休
+    </div>
+    <div class="format-card">
+      <span class="label">ラベル付き形式</span>
+      <span class="hl2">②名前　</span>伊藤 花子<br>
+      <span class="hl2">⑤出社予定　</span>14:30<br>
+      <span class="hl2">⑥</span>午前半休
+    </div>
+  </div>
+</section>
+
+<section style="padding-top: 0;">
+  <p class="section-label">// 実行スケジュール</p>
+  <h2 class="section-title">1日2回、自動で動く</h2>
+  <p class="section-sub">タスクスケジューラに登録済み。PCが起動していれば何もしなくても実行される。</p>
+
+  <div class="schedule-grid">
+    <div class="schedule-card">
+      <div class="schedule-time">11:00</div>
+      <div class="schedule-reason">午前申請<br>午前半休・午後半休・休みを検出</div>
+    </div>
+    <div class="schedule-card">
+      <div class="schedule-time">14:35</div>
+      <div class="schedule-reason">午後申請・<br>午後半休・休みを検出</div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <p>掲示板取得.bat &nbsp;|&nbsp; Built with <span class="accent">Playwright</span> + Node.js &nbsp;|&nbsp; Cybozu Office 10 対応</p>
+  <p style="margin-top: 0.5rem; opacity: 0.5;">D:\ClaudeDesktop\Scheduler\掲示板取得.bat</p>
+</footer>
+
+<script>
+  // スクロールアニメーション
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) e.target.classList.add('visible');
+    });
+  }, { threshold: 0.2 });
+
+  document.querySelectorAll('.flow-item').forEach((el, i) => {
+    el.style.transitionDelay = `${i * 0.1}s`;
+    observer.observe(el);
+  });
+
+  // カウントアップアニメーション
+  const countEls = document.querySelectorAll('.stat-num');
+  const countObserver = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (!e.isIntersecting) return;
+      const el = e.target;
+      const text = el.textContent;
+      const num = parseFloat(text);
+      if (isNaN(num)) return;
+      const unit = el.querySelector('.stat-unit');
+      const unitText = unit ? unit.textContent : '';
+      let start = 0;
+      const duration = 1200;
+      const step = (timestamp) => {
+        if (!start) start = timestamp;
+        const progress = Math.min((timestamp - start) / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        const current = Math.round(eased * num);
+        el.textContent = current;
+        if (unit) {
+          el.textContent = current;
+          const newUnit = document.createElement('span');
+          newUnit.className = 'stat-unit';
+          newUnit.textContent = unitText;
+          el.appendChild(newUnit);
+        }
+        if (progress < 1) requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+      countObserver.unobserve(el);
+    });
+  }, { threshold: 0.5 });
+
+  countEls.forEach(el => countObserver.observe(el));
+</script>
+</body>
+</html>
