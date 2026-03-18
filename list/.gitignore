@@ -1,0 +1,6 @@
+# このフォルダ内のすべてを無視
+*
+
+# ただし、.gitignore 自体と .gitkeep は除外しない
+!.gitignore
+!.gitkeep
