@@ -81,6 +81,7 @@ function getFileTimestamp() {
 const KYUKA_KEYWORDS = ['全日有給休暇', '全日休暇', '午前半休', '午後半休', '午前休', '午後休', '半休', '全休', '欠勤'];
 const ALLDAY_KYUKA   = ['全日有給休暇', '全日休暇', '全休', '欠勤'];
 const HALF_KYUKA     = ['午前半休', '午後半休', '午前休', '午後休', '半休'];
+const CHIKOKU_KEYWORDS = ['遅刻'];
 const EXPLICIT_TIME_PATTERN = /(?:出社予定|時間|出勤|予定)[　\s:：]*(\d{1,2}\s*[:\：]\s*\d{2})/;
 const DASH_TIME_PATTERN     = /[\-ー]{2}:[\-ー]{2}/;
 const SKIP_SCHEDULE_KEYWORDS = [':休み', ':午前半休', ':午後半休'];
@@ -90,6 +91,11 @@ function findKyuka(text) {
         if (text.includes(k)) return k;
     }
     return null;
+}
+
+// ③の値から遅刻かどうか判定
+function isChikoku(text) {
+    return CHIKOKU_KEYWORDS.some(k => text.includes(k));
 }
 
 // 「12時半」「12時30分」「12:30」「14 :00」などを "12:30" 形式に正規化する
@@ -132,6 +138,12 @@ function toHalfWidth(str) {
     return str.replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0));
 }
 
+// ④の値からラベル（「簡易事由　」「事柄　」「理由　」等）を除去して純粋な理由テキストを返す
+function stripRiyuLabel(text) {
+    if (!text) return text;
+    return text.replace(/^(?:簡易事由|事由|理由|事柄)[　\s：:]+/, '').trim();
+}
+
 function parseEntry(entryText) {
     const lines = entryText.split('\n').map(l => toHalfWidth(l.trim())).filter(l => l);
 
@@ -146,11 +158,30 @@ function parseEntry(entryText) {
         const name = map[2] || null;
         if (!name) return null;
 
-        const kyuka = findKyuka(entryText) || null;
-        const atsukai = map[3] || '';
-        const riyu    = map[4] || '';
+        const atsukai3 = map[3] || '';
+        const riyu     = stripRiyuLabel(map[4] || '');
 
-        if (!kyuka && !atsukai) return null;
+        // ③が遅刻の場合: 遅刻扱いで登録（atsukaに「遅刻」は含めない）
+        if (isChikoku(atsukai3)) {
+            const timeVal = map[5] || '';
+            let time = '--:--';
+            const t = normalizeTimeStr(timeVal) || (timeVal.match(/(\d{1,2}:\d{2})/) ? timeVal.match(/(\d{1,2}:\d{2})/)[1] : null);
+            if (t) time = t;
+            return { name, time, kyuka: '遅刻', atsukai: '', riyu };
+        }
+
+        // ③欠勤 → 全日休暇として登録（「欠勤」はatsukaに含めない）
+        if (atsukai3 === '欠勤') {
+            let time = '--:--';
+            const timeVal = map[5] || '';
+            if (/\d{1,2}:\d{2}/.test(timeVal)) {
+                time = timeVal.match(/(\d{1,2}:\d{2})/)[1];
+            }
+            return { name, time, kyuka: '全日休暇', atsukai: '', riyu };
+        }
+
+        const kyuka = findKyuka(entryText) || null;
+        if (!kyuka && !atsukai3) return null;
 
         let time = '--:--';
         const timeVal = map[5] || '';
@@ -162,29 +193,102 @@ function parseEntry(entryText) {
             time = '14:30';
         }
 
-        return { name, time, kyuka: kyuka || '', atsukai, riyu };
+        return { name, time, kyuka: kyuka || '', atsukai: atsukai3, riyu };
     }
 
     // ---- 形式②: 丸数字・ラベル付き・漢字行 形式 ----
-    const kyuka = findKyuka(entryText) || null;
+
+    // ③の値を先に取得して遅刻・欠勤判定
+    const atsukaiCircleRaw = entryText.match(/③([^①②③④⑤⑥\n]+)/);
+    const atsukai3Val = atsukaiCircleRaw ? atsukaiCircleRaw[1].trim() : '';
+
+    // ⑥ の内容を取得
+    const circle6Match = entryText.match(/⑥([^①②③④⑤⑥\n]*)/);
+    const circle6Val = circle6Match ? circle6Match[1].trim() : null;
+
+    // ④の理由を取得（ラベル除去済み）
+    const riyuCircleRaw = entryText.match(/④([^①②③④⑤⑥\n]+)/);
+    let riyu4 = riyuCircleRaw ? stripRiyuLabel(riyuCircleRaw[1].trim()) : '';
+    if (!riyu4) {
+        const m = entryText.match(/^(?:事由|理由|事柄|簡易事由)[\s　：:]+(.+)$/m);
+        if (m) riyu4 = m[1].trim();
+    }
+
+    // 名前取得（共通処理）
+    function extractName() {
+        let name = null;
+        const nameLabelMatch = entryText.match(/[②2][.\s]?\s*(?:名前|氏名)[\s　：:]+([^\s　①②③④⑤⑥\n]+(?:\s+[^\s　①②③④⑤⑥\n]+)?)/);
+        if (nameLabelMatch) name = nameLabelMatch[1].trim();
+        if (!name) {
+            const plainLabelMatch = entryText.match(/^(?:名前|氏名)[\s　：:]+(.+)$/m);
+            if (plainLabelMatch) name = plainLabelMatch[1].trim();
+        }
+        if (!name) {
+            const circleTwoMatch = entryText.match(/②([^①②③④⑤⑥\n]{1,20})/);
+            if (circleTwoMatch) {
+                let candidate = circleTwoMatch[1].trim().replace(/^(?:名前|氏名)[\s　：:]+/, '').trim();
+                if (candidate && !/^\d+(\.\d+)?$/.test(candidate) && !KYUKA_KEYWORDS.some(k => candidate.includes(k)) && !/\d{1,2}:\d{2}/.test(candidate)) {
+                    name = candidate;
+                }
+            }
+        }
+        if (!name) {
+            const originalLines = entryText.split('\n').map(l => l.trim()).filter(l => l);
+            for (const line of originalLines) {
+                if (/^\d+(\.\d+)?$/.test(line)) continue;
+                if (/\d{4}\/\d+\/\d+/.test(line)) continue;
+                if (KYUKA_KEYWORDS.some(k => line.includes(k))) continue;
+                if (/\d{1,2}:\d{2}/.test(line)) continue;
+                if (/[（(].+[）)]/.test(line)) continue;
+                if (/^[①②③④⑤⑥]/.test(line)) continue;
+                if (/^[\u3000-\u9FFF\u30A0-\u30FF\u3040-\u309F 　]{2,15}$/.test(line)) {
+                    name = line.trim();
+                    break;
+                }
+            }
+        }
+        return name;
+    }
+
+    // ③が遅刻の場合: ⑥の値に関わらず遅刻登録
+    if (isChikoku(atsukai3Val)) {
+        let time = '--:--';
+        const explicitTime = findExplicitTime(entryText);
+        if (explicitTime && explicitTime !== '--:--') time = explicitTime;
+        const name = extractName();
+        if (!name) return null;
+        return { name, time, kyuka: '遅刻', atsukai: '', riyu: riyu4 };
+    }
+
+    // ③欠勤 × ⑥空欄 → 全日休暇として登録（「欠勤」はDetail/理由に含めない）
+    if (atsukai3Val === '欠勤' && circle6Match !== null && !circle6Val) {
+        const name = extractName();
+        if (!name) return null;
+        return { name, time: '--:--', kyuka: '全日休暇', atsukai: '', riyu: riyu4 };
+    }
+
+    // ⑥ 行が存在する書き込みの場合のみチェック（⑥がない書き込みは従来通り）
+    if (circle6Match !== null) {
+        const kyuka6 = circle6Val ? findKyuka(circle6Val) : null;
+        // ⑥が空欄で③が欠勤以外 → スキップ
+        if (!kyuka6) {
+            return null;
+        }
+    }
+
+    // ⑥または③から kyuka を決定
+    let kyuka = findKyuka(circle6Val || '') || findKyuka(entryText) || null;
 
     let atsukai = '';
-    let riyu = '';
-
-    const atsukaiCircle = entryText.match(/③([^①②③④⑤⑥\n]+)/);
-    if (atsukaiCircle) atsukai = atsukaiCircle[1].trim();
-
-    const riyuCircle = entryText.match(/④([^①②③④⑤⑥\n]+)/);
-    if (riyuCircle) riyu = riyuCircle[1].trim();
-
+    if (atsukaiCircleRaw && atsukai3Val !== '欠勤') {
+        atsukai = atsukai3Val;
+    }
     if (!atsukai) {
         const m = entryText.match(/^(?:連絡|扱い|届出処理)[\s　：:]+(.+)$/m);
         if (m) atsukai = m[1].trim();
     }
-    if (!riyu) {
-        const m = entryText.match(/^(?:事由|理由|事柄|簡易事由)[\s　：:]+(.+)$/m);
-        if (m) riyu = m[1].trim();
-    }
+
+    let riyu = riyu4;
 
     if (!kyuka && !atsukai) return null;
 
@@ -198,47 +302,10 @@ function parseEntry(entryText) {
         time = '14:30';
     }
 
-    let name = null;
-
-    // 「②名前　○○」「②氏名　○○」ラベル付き（丸数字あり）
-    const nameLabelMatch = entryText.match(/[②2][.\s]?\s*(?:名前|氏名)[\s　：:]+([^\s　①②③④⑤⑥\n]+(?:\s+[^\s　①②③④⑤⑥\n]+)?)/);
-    if (nameLabelMatch) name = nameLabelMatch[1].trim();
-
-    // 「名前　○○」「氏名　○○」ラベルのみ（丸数字なし）
-    if (!name) {
-        const plainLabelMatch = entryText.match(/^(?:名前|氏名)[\s　：:]+(.+)$/m);
-        if (plainLabelMatch) name = plainLabelMatch[1].trim();
-    }
-
-    // 「②○○」ラベルなし丸数字
-    if (!name) {
-        const circleTwoMatch = entryText.match(/②([^①②③④⑤⑥\n]{1,20})/);
-        if (circleTwoMatch) {
-            let candidate = circleTwoMatch[1].trim().replace(/^(?:名前|氏名)[\s　：:]+/, '').trim();
-            if (candidate && !/^\d+(\.\d+)?$/.test(candidate) && !KYUKA_KEYWORDS.some(k => candidate.includes(k)) && !/\d{1,2}:\d{2}/.test(candidate)) {
-                name = candidate;
-            }
-        }
-    }
-
-    // 漢字のみ行
-    if (!name) {
-        const originalLines = entryText.split('\n').map(l => l.trim()).filter(l => l);
-        for (const line of originalLines) {
-            if (/^\d+(\.\d+)?$/.test(line)) continue;
-            if (/\d{4}\/\d+\/\d+/.test(line)) continue;
-            if (KYUKA_KEYWORDS.some(k => line.includes(k))) continue;
-            if (/\d{1,2}:\d{2}/.test(line)) continue;
-            if (/[（(].+[）)]/.test(line)) continue;
-            if (/^[①②③④⑤⑥]/.test(line)) continue;
-            if (/^[\u3000-\u9FFF\u30A0-\u30FF\u3040-\u309F 　]{2,15}$/.test(line)) {
-                name = line.trim();
-                break;
-            }
-        }
-    }
-
+    const name = extractName();
     if (!name) return null;
+    if (/[（(].+[）)]/.test(name)) return null;
+
     return { name, time, kyuka: kyuka || '', atsukai, riyu };
 }
 
@@ -352,13 +419,7 @@ async function searchUserAndGetWeekView(page, setUrl, name) {
 }
 
 /**
- * グループ週画面の「+」ボタン（ScheduleEntry）をクリックして登録フォームを開き、
- * Event・Detail・時間を入力して登録する。
- * Detail には「時間/理由/扱い」形式で入力（休暇ありでも理由があれば含める）。
- */
-/**
  * 既存スケジュールを変更する（修正登録）
- * Attachment 1->2->3 のフローに従い、予定種別を更新し、時刻を解除（--:--）して保存する
  */
 async function modifySchedule(page, item, baseUrl, isAllMode, scheduleViewUrl) {
     if (!scheduleViewUrl) return false;
@@ -369,7 +430,7 @@ async function modifySchedule(page, item, baseUrl, isAllMode, scheduleViewUrl) {
     await page.goto(viewUrl, { waitUntil: 'domcontentloaded', timeout: 15000 }).catch(() => {});
     await page.waitForTimeout(1000);
 
-    // 「変更する」リンクを探してクリック (Attachment 2 の操作)
+    // 「変更する」リンクを探してクリック
     const modifyLink = page.locator('a[href*="ScheduleModify"], a:has-text("変更する")').first();
     if (await modifyLink.count() === 0) {
         console.log('  ✗ 変更ボタンが見つかりません');
@@ -379,7 +440,7 @@ async function modifySchedule(page, item, baseUrl, isAllMode, scheduleViewUrl) {
     await page.waitForLoadState('domcontentloaded', { timeout: 10000 }).catch(() => {});
     await page.waitForTimeout(1500);
 
-    // 予定種別を設定 (Attachment 3 の操作)
+    // 予定種別を設定
     const eventValue = kyukaToEventValue(item.kyuka);
     if (eventValue) {
         try {
@@ -390,7 +451,6 @@ async function modifySchedule(page, item, baseUrl, isAllMode, scheduleViewUrl) {
     }
 
     // 時刻設定を解除する（すべて "--" に設定）
-    // select の最初の選択肢（index:0）が通常「--」
     try {
         await page.selectOption('select[name="SetTime.Hour"]', { index: 0 }).catch(() => {});
         await page.selectOption('select[name="SetTime.Minute"]', { index: 0 }).catch(() => {});
@@ -408,7 +468,7 @@ async function modifySchedule(page, item, baseUrl, isAllMode, scheduleViewUrl) {
     const detailText = parts.join('/');
     await page.locator('input[name="Detail"]').fill(detailText);
 
-    // 登録確認（allオプションがない場合）
+    // 登録確認
     if (!isAllMode) {
         console.log(`\n[修正内容の確認]`);
         console.log(`名前: ${item.name}`);
@@ -430,11 +490,9 @@ async function modifySchedule(page, item, baseUrl, isAllMode, scheduleViewUrl) {
 }
 
 /**
- * 既存スケジュールを削除する（修正登録の前処理）
- * サイボウズの削除はScheduleDeleteページへGETするだけ
+ * 既存スケジュールを削除する
  */
 async function deleteSchedule(page, baseUrl, deleteUrl, scheduleViewUrl) {
-    // deleteUrl がなければ詳細画面から取得を試みる
     if (!deleteUrl && scheduleViewUrl) {
         console.log('  deleteUrl が null のため詳細画面から削除リンクを取得...');
         const viewUrl = scheduleViewUrl.startsWith('http') ? scheduleViewUrl : baseUrl + scheduleViewUrl.replace(/^.*ag\.cgi/, '');
@@ -455,14 +513,12 @@ async function deleteSchedule(page, baseUrl, deleteUrl, scheduleViewUrl) {
     await page.goto(delUrl, { waitUntil: 'domcontentloaded', timeout: 15000 }).catch(() => {});
     await page.waitForTimeout(1500);
 
-    // 削除確認ページのボタン一覧をログ出力
     const btns = await page.evaluate(() =>
         Array.from(document.querySelectorAll('input[type=submit], input[type=button], button'))
             .map(b => `[${b.tagName}] name=${b.name} value=${b.value || b.innerText}`)
     );
     console.log(`  削除ページのボタン: ${btns.join(' / ')}`);
 
-    // 削除確認ボタンを探してクリック（サイボウズの削除確認ページ対応）
     const confirmBtn = page.locator(
         'input[name="Delete"], input[value="削除する"], input[value="削除"], button:has-text("削除")'
     ).first();
@@ -493,7 +549,7 @@ async function registerSchedule(page, item, baseUrl, isAllMode, registerUrl) {
     await page.goto(entryUrl, { waitUntil: 'domcontentloaded', timeout: 15000 });
     await page.waitForTimeout(1500);
 
-    // Detail欄に「時間/理由/扱い」を入力（休暇ありでも理由・扱いがあれば含める）
+    // Detail欄に「時間/理由/扱い」を入力
     const parts = [];
     if (item.time && item.time !== '--:--') parts.push(item.time);
     if (item.riyu) parts.push(item.riyu);
@@ -512,7 +568,18 @@ async function registerSchedule(page, item, baseUrl, isAllMode, registerUrl) {
         }
     }
 
-    // 登録確認（allオプションがない場合）
+    // 遅刻の場合: 開始時刻を設定
+    if (item.kyuka === '遅刻' && item.time && item.time !== '--:--') {
+        const [hh, mm] = item.time.split(':');
+        try {
+            await page.selectOption('select[name="SetTime.Hour"]',   { value: String(parseInt(hh)) }).catch(() => {});
+            await page.selectOption('select[name="SetTime.Minute"]', { value: mm }).catch(() => {});
+        } catch (e) {
+            console.log(`  ⚠ 遅刻開始時刻設定スキップ: ${e.message}`);
+        }
+    }
+
+    // 登録確認
     if (!isAllMode) {
         console.log(`\n[登録内容の確認]`);
         console.log(`名前: ${item.name}`);
@@ -709,49 +776,37 @@ async function run() {
 
         const todaySchedule = found.userInfo.todaySchedule;
         const eventValue    = kyukaToEventValue(item.kyuka);
-        const eventLabel    = eventValue ? eventValue.split(',')[1] : null; // 例: ":午前半休"
-        const prevRecord    = registeredToday[item.name]; // 前回実行時の登録記録
+        const eventLabel    = eventValue ? eventValue.split(',')[1] : null;
+        const prevRecord    = registeredToday[item.name];
 
         const isAlreadyRegistered = eventLabel && todaySchedule.includes(eventLabel);
         const prevEventLabel      = prevRecord ? kyukaToEventValue(prevRecord.kyuka)?.split(',')[1] : null;
-        // 前回登録済み & 現在スケジュールに前回の予定種別がない → 手動削除されたとみなす
         const isManuallyDeleted   = prevRecord && prevEventLabel && !todaySchedule.includes(prevEventLabel);
 
-        // 現在のスケジュールに別種別の休暇が入っているか（登録記録の有無に関係なく判定）
-        // SKIP_SCHEDULE_KEYWORDS のうち、今回登録しようとしている種別以外のものが入っていれば修正対象
         const otherKyukaInSchedule = SKIP_SCHEDULE_KEYWORDS.filter(kw => kw !== eventLabel)
                                         .find(kw => todaySchedule.includes(kw));
 
-        // 修正登録が必要なケース：
-        //   ① 前回記録あり & 種別変化 & 前回種別がまだスケジュールにある
-        //   ② 前回記録なし（または種別同じ）& 別種別の休暇がスケジュールに存在する
         const isKyukaChanged = (prevRecord && prevRecord.kyuka !== item.kyuka
                                     && prevEventLabel && todaySchedule.includes(prevEventLabel))
                                || (!isAlreadyRegistered && otherKyukaInSchedule);
 
-        // 修正時に削除すべき既存の種別ラベル
         const deleteTargetLabel = prevEventLabel && todaySchedule.includes(prevEventLabel)
                                     ? prevEventLabel : otherKyukaInSchedule;
 
         const memo = [item.time, item.riyu, item.atsukai].filter(v => v && v !== '--:--').join('/');
 
         if (isManuallyDeleted) {
-            // 11:00に登録 → 手動削除された → 再登録しない
             console.log(`  ⚠ ${item.name} さんは手動削除済みのためスキップ`);
             searchResults.push({ ...item, searchKeyword: found.keyword, skipReason: '手動削除済み' });
 
         } else if (isKyukaChanged) {
-            // 休暇種別が変わった（例: 半休 → 休み）
-            // 削除して再登録ではなく、詳細画面からの「変更」を優先する（休み > 午前半休 = 午後半休 の優先度で上書き）
             const fromLabel = prevRecord ? prevRecord.kyuka : (deleteTargetLabel || '既存の予定');
             console.log(`\n  → ${item.name} さんの予定を修正中... (${fromLabel} → ${item.kyuka})`);
 
             let result;
             if (found.userInfo.scheduleViewUrl) {
-                // 詳細画面（Attachment 2）からの変更フロー（Attachment 3 へ遷移）
                 result = await modifySchedule(page, item, baseUrl, isAllMode, found.userInfo.scheduleViewUrl);
             } else {
-                // 変更リンクが特定できない場合は従来通り削除＆再登録
                 await deleteSchedule(page, baseUrl, found.userInfo.deleteUrl, found.userInfo.scheduleViewUrl);
                 const refound = await searchUserAndGetWeekView(page, setUrl, item.name);
                 result = await registerSchedule(page, item, baseUrl, isAllMode, refound ? refound.userInfo.registerUrl : found.userInfo.registerUrl);
@@ -767,11 +822,9 @@ async function run() {
             }
 
         } else if (isAlreadyRegistered) {
-            // 同じ予定種別がすでに登録済み → スキップ
             searchResults.push({ ...item, searchKeyword: found.keyword, skipReason: `登録済み(${eventLabel})` });
 
         } else {
-            // 未登録 → 新規登録
             console.log(`\n  → ${item.name} さんのスケジュールを登録中...`);
             const result = await registerSchedule(page, item, baseUrl, isAllMode, found.userInfo.registerUrl);
             if (result === true) {
