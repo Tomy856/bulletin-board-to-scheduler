@@ -105,7 +105,7 @@ function normalizeTimeStr(raw) {
     // スペース入り「14 :00」「14: 00」なども HH:MM に正規化
     const colonMatch = s.match(/^(\d{1,2})\s*:\s*(\d{2})$/);
     if (colonMatch) return `${colonMatch[1]}:${colonMatch[2].padStart(2,'0')}`;
-    // 「1300」「0900」などの4桁数字 → HH:MM に変換（0000〜2359の範囲チェック付き）
+    // 「1300」「0900」などの4桁数字 → HH:MM に変換（0000?2359の範囲チェック付き）
     const fourDigitMatch = s.match(/^(\d{4})$/);
     if (fourDigitMatch) {
         const hh = parseInt(s.substring(0, 2), 10);
@@ -329,6 +329,7 @@ function headerToMinutes(header) {
 // 休暇種別から Event の select value を決定
 function kyukaToEventValue(kyuka) {
     if (!kyuka) return null;
+    if (kyuka === '遅刻') return null; // 遅刻は通常予定（イベント種別なし）で開始時刻を設定する
     if (ALLDAY_KYUKA.some(k => kyuka.includes(k))) return 's,:休み';
     if (kyuka.includes('午前')) return 's,:午前半休';
     if (kyuka.includes('午後')) return 's,:午後半休';
@@ -439,7 +440,7 @@ async function modifySchedule(page, item, baseUrl, isAllMode, scheduleViewUrl) {
 
     const modifyLink = page.locator('a[href*="ScheduleModify"], a:has-text("変更する")').first();
     if (await modifyLink.count() === 0) {
-        console.log('  ✗ 変更ボタンが見つかりません');
+        console.log('  ? 変更ボタンが見つかりません');
         return false;
     }
     await modifyLink.click();
@@ -451,7 +452,7 @@ async function modifySchedule(page, item, baseUrl, isAllMode, scheduleViewUrl) {
         try {
             await page.selectOption('select[name="Event"]', { value: eventValue });
         } catch (e) {
-            console.log(`  ⚠ Event選択スキップ: ${e.message}`);
+            console.log(`  ? Event選択スキップ: ${e.message}`);
         }
     }
 
@@ -461,7 +462,7 @@ async function modifySchedule(page, item, baseUrl, isAllMode, scheduleViewUrl) {
         await page.selectOption('select[name="EndTime.Hour"]', { index: 0 }).catch(() => {});
         await page.selectOption('select[name="EndTime.Minute"]', { index: 0 }).catch(() => {});
     } catch (e) {
-        console.log(`  ⚠ 時刻解除失敗: ${e.message}`);
+        console.log(`  ? 時刻解除失敗: ${e.message}`);
     }
 
     const parts = [];
@@ -506,7 +507,7 @@ async function deleteSchedule(page, baseUrl, deleteUrl, scheduleViewUrl) {
         console.log(`  詳細画面から取得した deleteUrl: ${deleteUrl}`);
     }
     if (!deleteUrl) {
-        console.log('  ✗ deleteUrl が取得できなかったため削除スキップ');
+        console.log('  ? deleteUrl が取得できなかったため削除スキップ');
         return false;
     }
     const delUrl = deleteUrl.startsWith('http') ? deleteUrl : baseUrl + deleteUrl.replace(/^.*ag\.cgi/, '');
@@ -529,21 +530,21 @@ async function deleteSchedule(page, baseUrl, deleteUrl, scheduleViewUrl) {
         await page.waitForTimeout(1000);
         console.log('  削除ボタンをクリックしました');
     } else {
-        console.log('  ⚠ 削除確認ボタンが見つかりませんでした（URLで直接削除された可能性あり）');
+        console.log('  ? 削除確認ボタンが見つかりませんでした（URLで直接削除された可能性あり）');
     }
     return true;
 }
 
 async function registerSchedule(page, item, baseUrl, isAllMode, registerUrl) {
     if (!registerUrl) {
-        console.log('  ✗ 登録用(＋)リンクが見つかりません');
+        console.log('  ? 登録用(＋)リンクが見つかりません');
         return false;
     }
 
     const entryUrl = registerUrl.startsWith('http') ? registerUrl : baseUrl + registerUrl.replace(/^.*ag\.cgi/, '');
 
     if (!entryUrl) {
-        console.log('  ✗ ScheduleEntryリンクが見つかりません');
+        console.log('  ? ScheduleEntryリンクが見つかりません');
         return false;
     }
 
@@ -565,10 +566,21 @@ async function registerSchedule(page, item, baseUrl, isAllMode, registerUrl) {
         try {
             await page.selectOption('select[name="Event"]', { value: eventValue });
         } catch (e) {
-            console.log(`  ⚠ Event選択スキップ: ${e.message}`);
+            console.log(`  ? Event選択スキップ: ${e.message}`);
         }
     }
 
+
+    // 遅刻の場合: 開始時刻をスケジューラーに設定
+    if (item.kyuka === '遅刻' && item.time && item.time !== '--:--') {
+        const [hh, mm] = item.time.split(':');
+        try {
+            await page.selectOption('select[name="SetTime.Hour"]',   { value: String(parseInt(hh)) }).catch(() => {});
+            await page.selectOption('select[name="SetTime.Minute"]', { value: mm }).catch(() => {});
+        } catch (e) {
+            console.log('  遅刻開始時刻設定スキップ: ' + e.message);
+        }
+    }
     // 登録確認
     if (!isAllMode) {
         console.log(`\n[登録内容の確認]`);
@@ -769,7 +781,9 @@ async function run() {
         const eventLabel    = eventValue ? eventValue.split(',')[1] : null;
         const prevRecord    = registeredToday[item.name];
 
-        const isAlreadyRegistered = eventLabel && todaySchedule.includes(eventLabel);
+        const isAlreadyRegistered = item.kyuka === '遅刻'
+            ? (prevRecord && prevRecord.detail && todaySchedule.includes(prevRecord.detail.split('/')[0]))
+            : (eventLabel && todaySchedule.includes(eventLabel));
         const prevEventLabel      = prevRecord ? kyukaToEventValue(prevRecord.kyuka)?.split(',')[1] : null;
         const isManuallyDeleted   = prevRecord && prevEventLabel && !todaySchedule.includes(prevEventLabel);
 
@@ -786,7 +800,7 @@ async function run() {
         const memo = [item.time, item.riyu, item.atsukai].filter(v => v && v !== '--:--').join('/');
 
         if (isManuallyDeleted) {
-            console.log(`  ⚠ ${item.name} さんは手動削除済みのためスキップ`);
+            console.log(`  ? ${item.name} さんは手動削除済みのためスキップ`);
             searchResults.push({ ...item, searchKeyword: found.keyword, skipReason: '手動削除済み' });
 
         } else if (isKyukaChanged) {
@@ -803,7 +817,7 @@ async function run() {
             }
             if (result === true) {
                 saveRegistered(__baseDir, item.name, item.kyuka, memo);
-                console.log(`  ✓ 修正登録完了 (Detail: ${memo})`);
+                console.log(`  ? 修正登録完了 (Detail: ${memo})`);
                 searchResults.push({ ...item, searchKeyword: found.keyword, skipReason: null, registered: true, modified: true });
             } else if (result === 'cancelled') {
                 searchResults.push({ ...item, searchKeyword: found.keyword, skipReason: 'ユーザーによるキャンセル' });
@@ -819,7 +833,7 @@ async function run() {
             const result = await registerSchedule(page, item, baseUrl, isAllMode, found.userInfo.registerUrl);
             if (result === true) {
                 saveRegistered(__baseDir, item.name, item.kyuka, memo);
-                console.log(`  ✓ 登録完了 (Detail: ${memo})`);
+                console.log(`  ? 登録完了 (Detail: ${memo})`);
                 searchResults.push({ ...item, searchKeyword: found.keyword, skipReason: null, registered: true });
             } else if (result === 'cancelled') {
                 console.log(`  - ${item.name} さんの登録をスキップしました (ユーザーによるキャンセル)`);
