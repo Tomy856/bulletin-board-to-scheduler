@@ -620,18 +620,24 @@ async function run() {
     const loginBase = `${u.protocol}//${u.host}/cgi-bin/cbag/ag.cgi`;
     const baseUrl   = `${u.protocol}//${u.host}/cgi-bin/cbag/ag.cgi`;
 
-    console.log('ブラウザを起動中...');
-    const chromiumPath = chromium.executablePath();
-    const child = spawn(chromiumPath, [
-        '--remote-debugging-port=19223',
-        '--no-first-run',
-        '--no-default-browser-check',
-        loginBase
-    ], { detached: true, stdio: 'ignore' });
-    child.unref();
-
-    const ready = await waitForPort(19223);
-    if (!ready) { console.error('x タイムアウト'); process.exit(1); }
+    // デバッグポートが未起動の場合のみ Chromium を起動
+    const alreadyRunning = await waitForPort(19223, 500);
+    let chromiumPid = null;
+    if (!alreadyRunning) {
+        console.log('ブラウザを起動中...');
+        const chromiumPath = chromium.executablePath();
+        const child = spawn(chromiumPath, [
+            '--remote-debugging-port=19223',
+            '--no-first-run',
+            '--no-default-browser-check'
+        ], { detached: true, stdio: 'ignore' });
+        chromiumPid = child.pid;
+        child.unref();
+        const ready = await waitForPort(19223);
+        if (!ready) { console.error('x タイムアウト'); process.exit(1); }
+    } else {
+        console.log('既存のブラウザセッションに接続します...');
+    }
 
     const wsRes = await new Promise((resolve, reject) => {
         http.get('http://127.0.0.1:19223/json/version', res => {
@@ -700,7 +706,10 @@ async function run() {
 
     if (rawEntries.length === 0) {
         console.log(`本日(${todayStr})の書き込みが見つかりませんでした。`);
-        await browser.close();
+            await browser.close();
+    if (chromiumPid) {
+        try { process.kill(chromiumPid); } catch (e) {}
+    }
         process.exit(0);
     }
 
@@ -731,7 +740,10 @@ async function run() {
 
     if (parsed.length === 0) {
         console.log('抽出できる書き込みが見つかりませんでした。');
-        await browser.close();
+            await browser.close();
+    if (chromiumPid) {
+        try { process.kill(chromiumPid); } catch (e) {}
+    }
         process.exit(0);
     }
 
@@ -872,7 +884,10 @@ async function run() {
 
     console.log(`\n合計: ${parsed.length}件 / 登録: ${registered.length}件 / スキップ: ${skipped.length}件`);
 
-    await browser.close();
+        await browser.close();
+    if (chromiumPid) {
+        try { process.kill(chromiumPid); } catch (e) {}
+    }
 
     console.log('\n========================================');
     console.log('[OK] スケジュール確認完了！');
