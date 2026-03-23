@@ -98,20 +98,30 @@ function isChikoku(text) {
     return CHIKOKU_KEYWORDS.some(k => text.includes(k));
 }
 
-// 「12時半」「12時30分」「12:30」「14 :00」などを "12:30" 形式に正規化する
+// 「12時半」「12時30分」「12:30」「14 :00」「1300」などを "12:30" 形式に正規化する
 function normalizeTimeStr(raw) {
     if (!raw) return null;
+    const s = raw.trim();
     // スペース入り「14 :00」「14: 00」なども HH:MM に正規化
-    const colonMatch = raw.match(/(\d{1,2})\s*:\s*(\d{2})/);
+    const colonMatch = s.match(/^(\d{1,2})\s*:\s*(\d{2})$/);
     if (colonMatch) return `${colonMatch[1]}:${colonMatch[2].padStart(2,'0')}`;
+    // 「1300」「0900」などの4桁数字 → HH:MM に変換（0000〜2359の範囲チェック付き）
+    const fourDigitMatch = s.match(/^(\d{4})$/);
+    if (fourDigitMatch) {
+        const hh = parseInt(s.substring(0, 2), 10);
+        const mm = parseInt(s.substring(2, 4), 10);
+        if (hh >= 0 && hh <= 23 && mm >= 0 && mm <= 59) {
+            return `${hh}:${String(mm).padStart(2, '0')}`;
+        }
+    }
     // 「12時半」→ 12:30
-    const jiHanMatch = raw.match(/(\d{1,2})時半/);
+    const jiHanMatch = s.match(/(\d{1,2})時半/);
     if (jiHanMatch) return `${jiHanMatch[1]}:30`;
     // 「12時30分」→ 12:30
-    const jiMinMatch = raw.match(/(\d{1,2})時(\d{1,2})分/);
+    const jiMinMatch = s.match(/(\d{1,2})時(\d{1,2})分/);
     if (jiMinMatch) return `${jiMinMatch[1]}:${String(jiMinMatch[2]).padStart(2,'0')}`;
     // 「12時」→ 12:00
-    const jiMatch = raw.match(/(\d{1,2})時/);
+    const jiMatch = s.match(/(\d{1,2})時/);
     if (jiMatch) return `${jiMatch[1]}:00`;
     return null;
 }
@@ -121,7 +131,7 @@ function findExplicitTime(text) {
     const m = text.match(EXPLICIT_TIME_PATTERN);
     // ラベル付き時刻（スペース入り対応のため normalizeTimeStr に通す）
     if (m) return normalizeTimeStr(m[1]) || m[1];
-    // ⑤ の後の時刻文字列を取得（「12:30」「12時半」「12時30分」に対応）
+    // ⑤ の後の時刻文字列を取得（「12:30」「12時半」「12時30分」「1300」に対応）
     const m2 = text.match(/⑤([^①②③④⑤⑥\n]{1,10})/);
     if (m2) {
         const normalized = normalizeTimeStr(m2[1].trim());
@@ -161,11 +171,11 @@ function parseEntry(entryText) {
         const atsukai3 = map[3] || '';
         const riyu     = stripRiyuLabel(map[4] || '');
 
-        // ③が遅刻の場合: 遅刻扱いで登録（atsukaに「遅刻」は含めない）
+        // ③が遅刻の場合: 遅刻扱いで登録（時刻はDetailに入れるのみ、スケジューラー時刻設定はしない）
         if (isChikoku(atsukai3)) {
-            const timeVal = map[5] || '';
+            const timeVal = toHalfWidth(map[5] || '');
             let time = '--:--';
-            const t = normalizeTimeStr(timeVal) || (timeVal.match(/(\d{1,2}:\d{2})/) ? timeVal.match(/(\d{1,2}:\d{2})/)[1] : null);
+            const t = normalizeTimeStr(timeVal);
             if (t) time = t;
             return { name, time, kyuka: '遅刻', atsukai: '', riyu };
         }
@@ -250,10 +260,10 @@ function parseEntry(entryText) {
         return name;
     }
 
-    // ③が遅刻の場合: ⑥の値に関わらず遅刻登録
+    // ③が遅刻の場合: ⑥の値に関わらず遅刻登録（時刻はDetailに入れるのみ、スケジューラー時刻設定はしない）
     if (isChikoku(atsukai3Val)) {
         let time = '--:--';
-        const explicitTime = findExplicitTime(entryText);
+        const explicitTime = findExplicitTime(toHalfWidth(entryText));
         if (explicitTime && explicitTime !== '--:--') time = explicitTime;
         const name = extractName();
         if (!name) return null;
@@ -375,7 +385,7 @@ async function searchUserAndGetWeekView(page, setUrl, name) {
                 const cells = Array.from(row.querySelectorAll('td'));
                 const todayCellEl = cells[0];
                 const todayCellText = todayCellEl ? (todayCellEl.innerText || '').trim() : '';
-                
+
                 let registerUrl = null;
                 let editUrl = null;
                 let deleteUrl = null;
@@ -388,23 +398,20 @@ async function searchUserAndGetWeekView(page, setUrl, name) {
                     const deleteLink = todayCellEl.querySelector('a[href*="ScheduleDelete"]');
                     if (deleteLink) deleteUrl = deleteLink.getAttribute('href');
 
-                    // 複数の予定がある中から、休暇関連のリンクを優先して探す
                     const detailLinks = Array.from(todayCellEl.querySelectorAll('a[href*="ScheduleView"], a[href*="ScheduleDetail"], a[href*="sid="]'));
                     const vacationKeywords = [':休み', ':午前半休', ':午後半休'];
                     let targetLink = detailLinks.find(a => {
                         const text = (a.innerText || '').trim();
                         return vacationKeywords.some(kw => text.includes(kw));
                     });
-                    
-                    // 休暇リンクが見つからなければ最初のリンクを代用
+
                     const viewLink = targetLink || detailLinks[0];
                     if (viewLink) scheduleViewUrl = viewLink.getAttribute('href');
-                    
-                    // デバッグ: すべてのリンクを記録
+
                     const allLinks = detailLinks.map(a => a.getAttribute('href')).join(' | ');
                     if (allLinks) console.log('TD links:', allLinks);
                 }
-                
+
                 users.push({ userName, todaySchedule: todayCellText, registerUrl, editUrl, deleteUrl, scheduleViewUrl });
             }
             return users;
@@ -430,7 +437,6 @@ async function modifySchedule(page, item, baseUrl, isAllMode, scheduleViewUrl) {
     await page.goto(viewUrl, { waitUntil: 'domcontentloaded', timeout: 15000 }).catch(() => {});
     await page.waitForTimeout(1000);
 
-    // 「変更する」リンクを探してクリック
     const modifyLink = page.locator('a[href*="ScheduleModify"], a:has-text("変更する")').first();
     if (await modifyLink.count() === 0) {
         console.log('  ✗ 変更ボタンが見つかりません');
@@ -440,7 +446,6 @@ async function modifySchedule(page, item, baseUrl, isAllMode, scheduleViewUrl) {
     await page.waitForLoadState('domcontentloaded', { timeout: 10000 }).catch(() => {});
     await page.waitForTimeout(1500);
 
-    // 予定種別を設定
     const eventValue = kyukaToEventValue(item.kyuka);
     if (eventValue) {
         try {
@@ -450,7 +455,6 @@ async function modifySchedule(page, item, baseUrl, isAllMode, scheduleViewUrl) {
         }
     }
 
-    // 時刻設定を解除する（すべて "--" に設定）
     try {
         await page.selectOption('select[name="SetTime.Hour"]', { index: 0 }).catch(() => {});
         await page.selectOption('select[name="SetTime.Minute"]', { index: 0 }).catch(() => {});
@@ -460,7 +464,6 @@ async function modifySchedule(page, item, baseUrl, isAllMode, scheduleViewUrl) {
         console.log(`  ⚠ 時刻解除失敗: ${e.message}`);
     }
 
-    // メモ（Detail）を更新
     const parts = [];
     if (item.time && item.time !== '--:--') parts.push(item.time);
     if (item.riyu) parts.push(item.riyu);
@@ -468,7 +471,6 @@ async function modifySchedule(page, item, baseUrl, isAllMode, scheduleViewUrl) {
     const detailText = parts.join('/');
     await page.locator('input[name="Detail"]').fill(detailText);
 
-    // 登録確認
     if (!isAllMode) {
         console.log(`\n[修正内容の確認]`);
         console.log(`名前: ${item.name}`);
@@ -480,7 +482,6 @@ async function modifySchedule(page, item, baseUrl, isAllMode, scheduleViewUrl) {
         }
     }
 
-    // 「変更する」ボタンをクリック
     const submitBtn = page.locator('input[type="submit"][value*="変更する"], input[name="Modify"], input[name="Entry"]').first();
     await submitBtn.click();
     await page.waitForLoadState('domcontentloaded', { timeout: 10000 }).catch(() => {});
@@ -549,7 +550,7 @@ async function registerSchedule(page, item, baseUrl, isAllMode, registerUrl) {
     await page.goto(entryUrl, { waitUntil: 'domcontentloaded', timeout: 15000 });
     await page.waitForTimeout(1500);
 
-    // Detail欄に「時間/理由/扱い」を入力
+    // Detail欄に「時間/理由/扱い」を入力（遅刻の場合も時刻はDetailのみ、スケジューラー時刻設定はしない）
     const parts = [];
     if (item.time && item.time !== '--:--') parts.push(item.time);
     if (item.riyu) parts.push(item.riyu);
@@ -565,17 +566,6 @@ async function registerSchedule(page, item, baseUrl, isAllMode, registerUrl) {
             await page.selectOption('select[name="Event"]', { value: eventValue });
         } catch (e) {
             console.log(`  ⚠ Event選択スキップ: ${e.message}`);
-        }
-    }
-
-    // 遅刻の場合: 開始時刻を設定
-    if (item.kyuka === '遅刻' && item.time && item.time !== '--:--') {
-        const [hh, mm] = item.time.split(':');
-        try {
-            await page.selectOption('select[name="SetTime.Hour"]',   { value: String(parseInt(hh)) }).catch(() => {});
-            await page.selectOption('select[name="SetTime.Minute"]', { value: mm }).catch(() => {});
-        } catch (e) {
-            console.log(`  ⚠ 遅刻開始時刻設定スキップ: ${e.message}`);
         }
     }
 
