@@ -260,14 +260,22 @@ function parseEntry(entryText) {
         return name;
     }
 
-    // ③が遅刻の場合: ⑥の値に関わらず遅刻登録（時刻はDetailに入れるのみ、スケジューラー時刻設定はしない）
+    // ③が遅刻の場合: ⑥に休暇キーワードがあれば⑥を優先（遅刻はatsukaiに入れる）
+    // ⑥が空またなければ遅刻のみとして登録
     if (isChikoku(atsukai3Val)) {
-        let time = '--:--';
-        const explicitTime = findExplicitTime(toHalfWidth(entryText));
-        if (explicitTime && explicitTime !== '--:--') time = explicitTime;
-        const name = extractName();
-        if (!name) return null;
-        return { name, time, kyuka: '遅刻', atsukai: '', riyu: riyu4 };
+        const kyuka6 = circle6Val ? findKyuka(circle6Val) : null;
+        if (kyuka6) {
+            // ⑥に休暇キーワードあり → ⑥を休暇種別に、遅刻はatsukaiに入れて続行
+            // （そのまま下の共通処理に流れる）
+        } else {
+            // ⑥が空または休暇キーワードなし → 遅刻のみ登録
+            let time = '--:--';
+            const explicitTime = findExplicitTime(toHalfWidth(entryText));
+            if (explicitTime && explicitTime !== '--:--') time = explicitTime;
+            const name = extractName();
+            if (!name) return null;
+            return { name, time, kyuka: '遅刻', atsukai: '', riyu: riyu4 };
+        }
     }
 
     // ③欠勤 × ⑥空欄 → 全日休暇として登録（「欠勤」はDetail/理由に含めない）
