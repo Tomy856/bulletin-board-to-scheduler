@@ -103,7 +103,7 @@ function normalizeTimeStr(raw) {
     if (!raw) return null;
     const s = raw.trim();
     // スペース入り「14 :00」「14: 00」なども HH:MM に正規化
-    const colonMatch = s.match(/^(\d{1,2})\s*:\s*(\d{2})$/);
+    const colonMatch = s.match(/(\d{1,2})\s*:\s*(\d{2})/);
     if (colonMatch) return `${colonMatch[1]}:${colonMatch[2].padStart(2,'0')}`;
     // 「1300」「0900」などの4桁数字 → HH:MM に変換（0000?2359の範囲チェック付き）
     const fourDigitMatch = s.match(/^(\d{4})$/);
