@@ -78,8 +78,8 @@ function getFileTimestamp() {
     return `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
 }
 
-const KYUKA_KEYWORDS = ['全日有給休暇', '全日休暇', '午前半休', '午後半休', '午前休', '午後休', '半休', '全休', '欠勤'];
-const ALLDAY_KYUKA   = ['全日有給休暇', '全日休暇', '全休', '欠勤'];
+const KYUKA_KEYWORDS = ['全日有給休暇', '全日休暇', '午前半休', '午後半休', '午前休', '午後休', '半休', '全休', '欠勤', '有給休暇'];
+const ALLDAY_KYUKA   = ['全日有給休暇', '全日休暇', '全休', '欠勤', '有給休暇'];
 const HALF_KYUKA     = ['午前半休', '午後半休', '午前休', '午後休', '半休'];
 const CHIKOKU_KEYWORDS = ['遅刻'];
 const EXPLICIT_TIME_PATTERN = /(?:出社予定|時間|出勤|予定)[　\s:：]*(\d{1,2}\s*[:\：]\s*\d{2})/;
@@ -128,15 +128,19 @@ function normalizeTimeStr(raw) {
 
 function findExplicitTime(text) {
     if (DASH_TIME_PATTERN.test(text)) return '--:--';
-    const m = text.match(EXPLICIT_TIME_PATTERN);
-    // ラベル付き時刻（スペース入り対応のため normalizeTimeStr に通す）
-    if (m) return normalizeTimeStr(m[1]) || m[1];
-    // ⑤ の後の時刻文字列を取得（「12:30」「12時半」「12時30分」「1300」に対応）
-    const m2 = text.match(/⑤([^①②③④⑤⑥\n]{1,10})/);
-    if (m2) {
-        const normalized = normalizeTimeStr(m2[1].trim());
+    // ⑤ が存在する場合はその値を優先（空でも「時刻なし」として扱う）
+    const circle5Match = text.match(/⑤([^①②③④⑤⑥\n]*)/);
+    if (circle5Match !== null) {
+        const val = circle5Match[1].trim();
+        if (!val) return '--:--'; // ⑤が空 → 時刻なし
+        const normalized = normalizeTimeStr(val);
         if (normalized) return normalized;
+        // ⑤に値があるが時刻として解釈できない場合も --:-- 扱い
+        return '--:--';
     }
+    // ⑤がない書き込みはラベル付き時刻や単独時刻を探す
+    const m = text.match(EXPLICIT_TIME_PATTERN);
+    if (m) return normalizeTimeStr(m[1]) || m[1];
     // ラベルなし単独時刻 (14:00) を拾う
     const m3 = text.match(/(\d{1,2}\s*[:\：]\s*\d{2})/);
     if (m3) return normalizeTimeStr(m3[1]);
@@ -295,7 +299,13 @@ function parseEntry(entryText) {
     }
 
     // ⑥または③から kyuka を決定
-    let kyuka = findKyuka(circle6Val || '') || findKyuka(entryText) || null;
+    // ③が半休系の場合は③を優先（⑥が全日休暇でも午前半休/午後半休として登録）
+    let kyuka;
+    if (HALF_KYUKA.some(k => atsukai3Val.includes(k))) {
+        kyuka = findKyuka(atsukai3Val);
+    } else {
+        kyuka = findKyuka(circle6Val || '') || findKyuka(entryText) || null;
+    }
 
     let atsukai = '';
     if (atsukaiCircleRaw && atsukai3Val !== '欠勤') {
@@ -476,7 +486,9 @@ async function modifySchedule(page, item, baseUrl, isAllMode, scheduleViewUrl) {
     const parts = [];
     if (item.time && item.time !== '--:--') parts.push(item.time);
     if (item.riyu) parts.push(item.riyu);
-    if (item.atsukai) parts.push(item.atsukai);
+    // ⑤時刻か④理由があれば③扱いは入れない、どちらもなければ③を入れる
+    const hasTimeOrRiyu = (item.time && item.time !== '--:--') || item.riyu;
+    if (item.atsukai && !hasTimeOrRiyu) parts.push(item.atsukai);
     const detailText = parts.join('/');
     await page.locator('input[name="Detail"]').fill(detailText);
 
@@ -563,7 +575,9 @@ async function registerSchedule(page, item, baseUrl, isAllMode, registerUrl) {
     const parts = [];
     if (item.time && item.time !== '--:--') parts.push(item.time);
     if (item.riyu) parts.push(item.riyu);
-    if (item.atsukai) parts.push(item.atsukai);
+    // ⑤時刻か④理由があれば③扱いは入れない、どちらもなければ③を入れる
+    const hasTimeOrRiyu = (item.time && item.time !== '--:--') || item.riyu;
+    if (item.atsukai && !hasTimeOrRiyu) parts.push(item.atsukai);
     const detailText = parts.join('/');
 
     await page.locator('input[name="Detail"]').fill(detailText);
@@ -780,7 +794,8 @@ async function run() {
 
     console.log('\n--- 抽出結果 ---');
     for (const item of parsed) {
-        const memo = [item.time, item.riyu, item.atsukai].filter(v => v && v !== '--:--').join('/');
+        const hasTimeOrRiyuM = (item.time && item.time !== '--:--') || item.riyu;
+        const memo = [item.time, item.riyu, (!hasTimeOrRiyuM ? item.atsukai : null)].filter(v => v && v !== '--:--').join('/');
         console.log(`名前: ${item.name}  時間: ${item.time}  休暇: ${item.kyuka || '（なし）'}  メモ: ${memo}`);
     }
     console.log(`保存先: list\\${fileName}`);
@@ -817,7 +832,8 @@ async function run() {
         const deleteTargetLabel = prevEventLabel && todaySchedule.includes(prevEventLabel)
                                     ? prevEventLabel : otherKyukaInSchedule;
 
-        const memo = [item.time, item.riyu, item.atsukai].filter(v => v && v !== '--:--').join('/');
+        const hasTimeOrRiyuM = (item.time && item.time !== '--:--') || item.riyu;
+        const memo = [item.time, item.riyu, (!hasTimeOrRiyuM ? item.atsukai : null)].filter(v => v && v !== '--:--').join('/');
 
         if (isManuallyDeleted) {
             console.log(`  ? ${item.name} さんは手動削除済みのためスキップ`);
@@ -875,7 +891,8 @@ async function run() {
     if (registered.length > 0) {
         console.log('\n【登録完了】');
         for (const r of registered) {
-            const memo = [r.time, r.riyu, r.atsukai].filter(v => v && v !== '--:--').join('/');
+            const hasTimeOrRiyuM = (r.time && r.time !== '--:--') || r.riyu;
+            const memo = [r.time, r.riyu, (!hasTimeOrRiyuM ? r.atsukai : null)].filter(v => v && v !== '--:--').join('/');
             const tag = r.modified ? '[修正]' : '[登録]';
             console.log(`  ${tag} ${r.name}  休暇: ${r.kyuka || '（なし）'}  メモ: ${memo}`);
         }
