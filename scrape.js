@@ -309,7 +309,9 @@ function parseEntry(entryText) {
 
     let atsukai = '';
     if (atsukaiCircleRaw && atsukai3Val !== '欠勤') {
-        atsukai = atsukai3Val;
+        // ③の値が休暇キーワードそのもの（全日休暇・有給休暇等）の場合はatsukaiに入れない
+        const atsukai3IsKyuka = KYUKA_KEYWORDS.some(k => atsukai3Val === k);
+        if (!atsukai3IsKyuka) atsukai = atsukai3Val;
     }
     if (!atsukai) {
         const m = entryText.match(/^(?:連絡|扱い|届出処理)[\s　：:]+(.+)$/m);
@@ -371,7 +373,12 @@ async function searchUserAndGetWeekView(page, setUrl, name) {
             candidates.push(n.substring(0, half));
             candidates.push(n.substring(half));
         } else if (n.length === 3) {
+            // 姓2文字+名1文字パターン: 「山内　隆」のようにスペース区切りで検索
+            candidates.push(n.substring(0, 2) + String.fromCharCode(12288) + n.substring(2));
             candidates.push(n.substring(0, 2));
+            candidates.push(n.substring(1));
+        } else if (n.length === 2) {
+            candidates.push(n.substring(0, 1));
             candidates.push(n.substring(1));
         }
     }
